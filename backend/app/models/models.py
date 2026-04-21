@@ -89,13 +89,18 @@ class Agent(Base):
     capabilities = Column(JSON, default=list)
     org_id = Column(String(36), ForeignKey("organizations.id"))
     team_id = Column(String(36), ForeignKey("teams.id"))
+    parent_agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
     status = Column(String(50), default="active")
     cost_to_date = Column(Float, default=0.0)
+    max_sub_agents = Column(Integer, default=5)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     organization = relationship("Organization", back_populates="agents")
     team = relationship("Team", back_populates="agents")
     tasks = relationship("Task", back_populates="agent")
+    sub_agents = relationship("Agent", backref="parent", remote_side=[id])
+    prompts = relationship("PromptVersion", back_populates="agent")
+    llm_usage = relationship("LLMUsage", back_populates="agent")
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -166,6 +171,8 @@ class PromptVersion(Base):
     context_window_pct = Column(Float)
     review_status = Column(String(20), default="pending")
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    agent = relationship("Agent", back_populates="prompts")
 
 class LLMUsage(Base):
     __tablename__ = "llm_usage"
@@ -183,3 +190,5 @@ class LLMUsage(Base):
     latency_ms = Column(Integer)
     temperature = Column(Float)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    
+    agent = relationship("Agent", back_populates="llm_usage")
