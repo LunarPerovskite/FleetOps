@@ -124,72 +124,48 @@ async def cancel_execution(
 async def list_supported_agents(
     current_user: User = Depends(get_current_user)
 ):
-    """List all supported agent types and their capabilities"""
 from app.core.config import settings
+from app.adapters.all_adapters import ALL_ADAPTERS, ADAPTER_CATEGORIES
+
+# ═══════════════════════════════════════
+# AGENT CONFIGURATION CHECK
+# ═══════════════════════════════════════
 
 def check_agent_configured(agent_type: str) -> bool:
     """Check if agent is configured in environment"""
-    if agent_type == "openclaw":
-        return bool(settings.OPENCLAW_URL)
-    elif agent_type == "hermes":
-        return bool(settings.HERMES_URL)
-    elif agent_type == "ollama":
-        return bool(settings.OLLAMA_BASE_URL)
-    elif agent_type == "custom":
-        return True  # Always available
+    adapter_info = ALL_ADAPTERS.get(agent_type, {})
+    url_env = adapter_info.get("url_env", "")
+    if url_env:
+        return bool(getattr(settings, url_env, None))
     return False
 
-    agents = {
-        "openclaw": {
-            "name": "OpenClaw",
-            "description": "Session-based autonomous agent with step-by-step governance",
-            "capabilities": [
-                "session_based_execution",
-                "step_by_step_approval",
-                "file_editing",
-                "command_execution",
-                "git_operations",
-                "multi_step_planning"
-            ],
-            "config_required": ["OPENCLAW_URL", "OPENCLAW_API_KEY"],
-            "status": "available" if check_agent_configured("openclaw") else "not_configured"
-        },
-        "hermes": {
-            "name": "Hermes",
-            "description": "Task-based personal AI assistant with progress tracking",
-            "capabilities": [
-                "task_based_execution",
-                "progress_tracking",
-                "artifact_generation",
-                "workflow_automation",
-                "scheduled_execution"
-            ],
-            "config_required": ["HERMES_URL", "HERMES_API_KEY"],
-            "status": "available" if check_agent_configured("hermes") else "not_configured"
-        },
-        "ollama": {
-            "name": "Ollama (Local LLM)",
-            "description": "Local LLM agent that runs entirely on your machine",
-            "capabilities": [
-                "local_llm",
-                "text_generation",
-                "code_generation",
-                "offline_capable"
-            ],
-            "config_required": ["OLLAMA_URL", "OLLAMA_MODEL"],
-            "status": "available" if check_agent_configured("ollama") else "not_configured"
-        },
-        "custom": {
-            "name": "Custom Agent",
-            "description": "Any agent with HTTP API",
-            "capabilities": [
-                "configurable",
-                "api_based",
-                "generic"
-            ],
-            "config_required": ["AGENT_URL", "AGENT_API_KEY"],
-            "status": "available"
-        }
-    }
 
-    return {"agents": agents}
+# ═══════════════════════════════════════
+# AGENT LISTING
+# ═══════════════════════════════════════
+
+@router.get("/agents")
+async def list_supported_agents(
+    current_user: User = Depends(get_current_user)
+):
+    """List all supported agent types and their capabilities"""
+    
+    agents = {}
+    for agent_id, info in ALL_ADAPTERS.items():
+        agents[agent_id] = {
+            "id": agent_id,
+            "name": info["name"],
+            "category": info["category"],
+            "description": info["description"],
+            "capabilities": info.get("capabilities", []),
+            "supports_governance": info.get("supports_governance", True),
+            "supports_remote": True,
+            "config_required": [info.get("url_env", "")] if info.get("url_env") else [],
+            "status": "available" if check_agent_configured(agent_id) else "not_configured"
+        }
+    
+    return {
+        "agents": agents,
+        "categories": ADAPTER_CATEGORIES,
+        "total_count": len(agents)
+    }

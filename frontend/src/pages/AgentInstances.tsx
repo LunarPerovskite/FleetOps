@@ -495,17 +495,29 @@ function CreateInstanceModal({ agentTypes, onClose, onCreated }: {
                     setFormData({ ...formData, agent_type: type.id });
                     setStep(2);
                   }}
-                  className={`p-3 border rounded-lg text-left ${
+                  className={`p-3 border rounded-lg text-left transition-colors ${
                     formData.agent_type === type.id
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="font-medium">{type.name}</div>
-                  <div className="text-sm text-gray-500">{type.description}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium">{type.name}</div>
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      type.category === 'multi-agent' ? 'bg-purple-100 text-purple-700' :
+                      type.category === 'framework' ? 'bg-blue-100 text-blue-700' :
+                      type.category === 'autonomous' ? 'bg-orange-100 text-orange-700' :
+                      type.category === 'local-llm' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {type.category}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">{type.description}</div>
                   <div className="flex gap-1 mt-1">
                     {type.supports_local && <span className="text-xs bg-gray-100 px-1 rounded">Local</span>}
                     {type.supports_remote && <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded">Remote</span>}
+                    {type.supports_governance && <span className="text-xs bg-green-100 text-green-700 px-1 rounded">Governed</span>}
                   </div>
                 </button>
               ))}

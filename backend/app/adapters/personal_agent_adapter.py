@@ -22,11 +22,30 @@ import httpx
 from enum import Enum
 
 class AgentType(str, Enum):
-    """Supported personal agent types"""
+    """Supported agent types"""
+    # Personal
     OPENCLAW = "openclaw"
     HERMES = "hermes"
-    CUSTOM = "custom"
+    # Multi-Agent
+    CREWAI = "crewai"
+    AUTOGEN = "autogen"
+    METAGPT = "metagpt"
+    CHATDEV = "chatdev"
+    GPTEAM = "gpteam"
+    AGENTVERSE = "agentverse"
+    PRAISONAI = "praisonai"
+    # Frameworks
+    LANGCHAIN = "langchain"
+    LLAMAINDEX = "llamaindex"
+    TASKWEAVER = "taskweaver"
+    # Autonomous
+    BABYAGI = "babyagi"
+    SUPERAGI = "superagi"
+    # Local LLM
     OLLAMA = "ollama"
+    LOCAL_LLM = "local_llm"
+    # Custom
+    CUSTOM = "custom"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
 
@@ -49,18 +68,60 @@ class PersonalAgentAdapter:
     
     def _initialize_adapter(self):
         """Initialize the specific adapter based on agent type"""
-        if self.agent_type == AgentType.OPENCLAW:
+        # Personal agents
+        if self.agent_type in [AgentType.OPENCLAW]:
             from app.adapters.openclaw_adapter import openclaw_adapter
             self._adapter = openclaw_adapter
-        elif self.agent_type == AgentType.HERMES:
+        elif self.agent_type in [AgentType.HERMES]:
             from app.adapters.hermes_adapter import hermes_adapter
             self._adapter = hermes_adapter
+        # Multi-Agent frameworks
+        elif self.agent_type == AgentType.CREWAI:
+            from app.adapters.crewai_adapter import crewai_adapter
+            self._adapter = crewai_adapter
+        elif self.agent_type == AgentType.AUTOGEN:
+            from app.adapters.autogen_adapter import autogen_adapter
+            self._adapter = autogen_adapter
+        elif self.agent_type == AgentType.METAGPT:
+            from app.adapters.all_adapters import metagpt_adapter
+            self._adapter = metagpt_adapter
+        elif self.agent_type == AgentType.CHATDEV:
+            from app.adapters.all_adapters import chatdev_adapter
+            self._adapter = chatdev_adapter
+        elif self.agent_type == AgentType.GPTEAM:
+            from app.adapters.all_adapters import gpteam_adapter
+            self._adapter = gpteam_adapter
+        elif self.agent_type == AgentType.AGENTVERSE:
+            from app.adapters.all_adapters import agentverse_adapter
+            self._adapter = agentverse_adapter
+        elif self.agent_type == AgentType.PRAISONAI:
+            from app.adapters.all_adapters import praisonai_adapter
+            self._adapter = praisonai_adapter
+        # Frameworks
+        elif self.agent_type == AgentType.LANGCHAIN:
+            from app.adapters.all_adapters import langchain_adapter
+            self._adapter = langchain_adapter
+        elif self.agent_type == AgentType.LLAMAINDEX:
+            from app.adapters.all_adapters import llamaindex_adapter
+            self._adapter = llamaindex_adapter
+        elif self.agent_type == AgentType.TASKWEAVER:
+            from app.adapters.all_adapters import taskweaver_adapter
+            self._adapter = taskweaver_adapter
+        # Autonomous
+        elif self.agent_type == AgentType.BABYAGI:
+            from app.adapters.all_adapters import babyagi_adapter
+            self._adapter = babyagi_adapter
+        elif self.agent_type == AgentType.SUPERAGI:
+            from app.adapters.all_adapters import superagi_adapter
+            self._adapter = superagi_adapter
+        # Local LLM
         elif self.agent_type == AgentType.OLLAMA:
             self._adapter = OllamaAdapter(self.config)
-        elif self.agent_type == AgentType.CUSTOM:
-            self._adapter = CustomAgentAdapter(self.config)
+        elif self.agent_type == AgentType.LOCAL_LLM:
+            from app.adapters.all_adapters import local_llm_adapter
+            self._adapter = local_llm_adapter
+        # Custom / Default
         else:
-            # Default to custom
             self._adapter = CustomAgentAdapter(self.config)
     
     async def execute_task(self, task_id: str, instructions: str,
@@ -262,8 +323,9 @@ class PersonalAgentAdapter:
             return []
     
     def get_capabilities(self) -> List[str]:
-        """Get list of agent capabilities"""
+        """Get list of agent capabilities based on type"""
         capabilities = {
+            # Personal
             AgentType.OPENCLAW: [
                 "session_based_execution",
                 "step_by_step_approval",
@@ -279,12 +341,104 @@ class PersonalAgentAdapter:
                 "workflow_automation",
                 "scheduled_execution"
             ],
+            # Multi-Agent
+            AgentType.CREWAI: [
+                "multi_agent_crew",
+                "role_based_agents",
+                "task_delegation",
+                "sequential_execution",
+                "hierarchical_execution",
+                "parallel_execution",
+                "agent_collaboration"
+            ],
+            AgentType.AUTOGEN: [
+                "multi_agent_chat",
+                "conversable_agents",
+                "group_chat",
+                "code_execution",
+                "human_proxy",
+                "agent_debate"
+            ],
+            AgentType.METAGPT: [
+                "software_company_simulation",
+                "role_playing",
+                "product_manager",
+                "architect",
+                "engineer",
+                "qa_engineer",
+                "deliverable_approval"
+            ],
+            AgentType.CHATDEV: [
+                "chat_based_dev",
+                "software_phases",
+                "phase_approval",
+                "code_generation"
+            ],
+            AgentType.GPTEAM: [
+                "hierarchical_teams",
+                "team_lead",
+                "worker_agents",
+                "task_assignment"
+            ],
+            AgentType.AGENTVERSE: [
+                "multi_agent_env",
+                "agent_simulation",
+                "collaborative_problem_solving"
+            ],
+            AgentType.PRAISONAI: [
+                "auto_generated_crews",
+                "role_discovery",
+                "automatic_agents"
+            ],
+            # Frameworks
+            AgentType.LANGCHAIN: [
+                "chains",
+                "agents",
+                "tools",
+                "memory",
+                "rag",
+                "tool_approval"
+            ],
+            AgentType.LLAMAINDEX: [
+                "indexing",
+                "retrieval",
+                "query_engine",
+                "chat_engine",
+                "rag_pipeline"
+            ],
+            AgentType.TASKWEAVER: [
+                "code_first",
+                "data_analytics",
+                "code_execution",
+                "microsoft_framework"
+            ],
+            # Autonomous
+            AgentType.BABYAGI: [
+                "task_creation",
+                "task_prioritization",
+                "objective_driven",
+                "self_improving"
+            ],
+            AgentType.SUPERAGI: [
+                "autonomous_agent",
+                "tool_usage",
+                "goal_oriented",
+                "learning"
+            ],
+            # Local LLM
             AgentType.OLLAMA: [
                 "local_llm",
                 "text_generation",
                 "code_generation",
                 "offline_capable"
             ],
+            AgentType.LOCAL_LLM: [
+                "local_llm",
+                "vllm",
+                "tgi",
+                "fast_inference"
+            ],
+            # Custom
             AgentType.CUSTOM: [
                 "configurable",
                 "api_based",
