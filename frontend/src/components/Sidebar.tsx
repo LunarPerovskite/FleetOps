@@ -19,7 +19,8 @@ import {
   Lightbulb,
   Puzzle,
   GitBranch,
-  Store
+  Store,
+  ServerCog
 } from 'lucide-react'
 
 const navItems = [
@@ -36,6 +37,7 @@ const navItems = [
   { path: '/audit', icon: ShieldCheck, label: 'Audit Log' },
   { path: '/dashboard-builder', icon: LayoutTemplate, label: 'Dashboard Builder' },
   { path: '/marketplace', icon: Store, label: 'Marketplace' },
+  { path: '/agent-instances', icon: ServerCog, label: 'Agent Instances' },
   { path: '/webhooks', icon: Link2, label: 'Webhooks' },
   { path: '/providers', icon: Plug, label: 'Providers' },
   { path: '/billing', icon: CreditCard, label: 'Billing' },

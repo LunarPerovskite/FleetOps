@@ -35,6 +35,7 @@ import WorkflowTemplates from './pages/WorkflowTemplates'
 import LandingPage from './pages/LandingPage'
 
 import Marketplace from './pages/Marketplace'
+import AgentInstances from './pages/AgentInstances'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -68,6 +69,7 @@ function App() {
                 <Route path="/integrations" element={<Integrations />} />
                 <Route path="/workflow-templates" element={<WorkflowTemplates />} />
                 <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/agent-instances" element={<AgentInstances />} />
               </Route>
             </Routes>
           </ErrorBoundary>
