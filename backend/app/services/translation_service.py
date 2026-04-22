@@ -14,46 +14,16 @@ from app.core.config import settings
 class TranslationService:
     """Translation and language detection"""
     
-    SUPPORTED_LANGUAGES = {
-        "en": "English",
-        "es": "Spanish",
-        "fr": "French",
-        "de": "German",
-        "it": "Italian",
-        "pt": "Portuguese",
-        "nl": "Dutch",
-        "ru": "Russian",
-        "zh": "Chinese",
-        "ja": "Japanese",
-        "ko": "Korean",
-        "ar": "Arabic",
-        "hi": "Hindi",
-        "tr": "Turkish",
-        "pl": "Polish",
-        "sv": "Swedish",
-        "da": "Danish",
-        "fi": "Finnish",
-        "no": "Norwegian",
-        "cs": "Czech",
-        "el": "Greek",
-        "he": "Hebrew",
-        "th": "Thai",
-        "vi": "Vietnamese",
-        "id": "Indonesian",
-        "ms": "Malay",
-        "uk": "Ukrainian",
-        "ro": "Romanian",
-        "hu": "Hungarian"
-    }
-    
     def __init__(self):
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.detect_model = os.getenv("TRANSLATION_DETECT_MODEL", "gpt-4o-mini")
+        self.translate_model = os.getenv("TRANSLATION_MODEL", "gpt-4o-mini")
     
     async def detect_language(self, text: str) -> Dict:
         """Detect language of text"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4.1-nano",
+                model=self.detect_model,
                 messages=[
                     {"role": "system", "content": "Detect language. Return JSON with: language_code, language_name, confidence (0-1)"},
                     {"role": "user", "content": text[:500]}  # Use first 500 chars
@@ -84,7 +54,7 @@ class TranslationService:
                 prompt += f" Source language: {self.SUPPORTED_LANGUAGES.get(source_language, source_language)}."
             
             response = self.client.chat.completions.create(
-                model="gpt-4.1-nano",
+                model=self.translate_model,
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text}

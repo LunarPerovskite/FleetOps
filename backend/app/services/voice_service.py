@@ -15,6 +15,8 @@ class VoiceService:
     
     def __init__(self):
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.whisper_model = os.getenv("WHISPER_MODEL", "whisper-1")
+        self.analysis_model = os.getenv("VOICE_ANALYSIS_MODEL", "gpt-4o-mini")
     
     async def transcribe(self, audio_file: BinaryIO, 
                         language: Optional[str] = None) -> dict:
@@ -26,7 +28,7 @@ class VoiceService:
             
             with open(tmp_path, "rb") as audio:
                 transcript = self.client.audio.transcriptions.create(
-                    model="whisper-1",
+                    model=self.whisper_model,
                     file=audio,
                     language=language
                 )
@@ -45,7 +47,7 @@ class VoiceService:
         """Analyze sentiment of transcribed text"""
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4.1-nano",
+                model=self.analysis_model,
                 messages=[
                     {"role": "system", "content": "Analyze sentiment. Return JSON with: sentiment (positive/neutral/negative), urgency (1-10), needs_escalation (boolean), key_phrases (list), category (billing/support/sales/technical/other)"},
                     {"role": "user", "content": text}
