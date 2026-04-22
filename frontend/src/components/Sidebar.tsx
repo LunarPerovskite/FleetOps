@@ -17,13 +17,15 @@ import {
   ShieldAlert,
   KeyRound,
   Lightbulb,
-  Puzzle
+  Puzzle,
+  GitBranch
 } from 'lucide-react'
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/use-cases', icon: Lightbulb, label: 'Use Cases' },
   { path: '/integrations', icon: Puzzle, label: 'Integrations' },
+  { path: '/workflow-templates', icon: GitBranch, label: 'Workflows' },
   { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { path: '/agents', icon: Bot, label: 'Agents' },
   { path: '/approvals', icon: Shield, label: 'Approvals' },

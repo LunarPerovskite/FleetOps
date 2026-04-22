@@ -30,6 +30,8 @@ import UseCases from './pages/UseCases'
 
 import Integrations from './pages/Integrations'
 
+import WorkflowTemplates from './pages/WorkflowTemplates'
+
 function App() {
   return (
     <ThemeProvider>
@@ -56,6 +58,7 @@ function App() {
               <Route path="/api-keys" element={<APIKeys />} />
               <Route path="/use-cases" element={<UseCases />} />
               <Route path="/integrations" element={<Integrations />} />
+              <Route path="/workflow-templates" element={<WorkflowTemplates />} />
             </Route>
           </Routes>
         </WebSocketProvider>
