@@ -14,7 +14,8 @@ import {
   Zap,
   Link2,
   CreditCard,
-  ShieldAlert
+  ShieldAlert,
+  KeyRound
 } from 'lucide-react'
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { path: '/webhooks', icon: Link2, label: 'Webhooks' },
   { path: '/providers', icon: Plug, label: 'Providers' },
   { path: '/billing', icon: CreditCard, label: 'Billing' },
+  { path: '/api-keys', icon: KeyRound, label: 'API Keys' },
   { path: '/settings', icon: Settings, label: 'Settings' },
   { path: '/admin', icon: ShieldAlert, label: 'Admin' },
 ]
