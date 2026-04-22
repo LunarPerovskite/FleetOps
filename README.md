@@ -17,6 +17,14 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 - **Multi-Channel Customer Service**: WhatsApp, Telegram, Web Chat, Voice, Email, Discord
 - **Provider Agnostic**: Choose your own stack (Clerk, Auth0, Okta, Supabase, AWS, etc.)
 - **Cross-Channel Context**: Conversations flow seamlessly between channels
+- **Custom Dashboards**: Build personalized dashboards with drag-and-drop widgets
+- **Audit Log**: Full event history with signature verification
+- **API Keys**: Programmatic access with scoped permissions
+- **Feature Flags**: Gradual rollouts and A/B testing
+- **Slack/Discord Bots**: Interactive approval buttons and notifications
+- **CLI Tool**: Command-line management (10 commands)
+- **One-Click Deploy**: Vercel, Railway, Render deploy buttons
+- **Webhooks**: Real-time event streaming with retry logic
 
 ## 📸 Screenshots
 
@@ -56,6 +64,19 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 | **Real-time** | WebSocket |
 | **Auth** | JWT + Provider Adapters (Clerk, Auth0, Okta) |
 | **Monitoring** | Sentry, Datadog, CloudWatch adapters |
+| **Bots** | Slack SDK, Discord.py |
+| **CLI** | Click (Python) |
+
+## 📊 Stats
+
+- **17 Frontend Pages** — All connected to real API
+- **24 API Routes** — Full CRUD for all resources
+- **17 Backend Services** — Task management, analytics, billing, webhooks
+- **11 Provider Adapters** — Auth, DB, hosting, monitoring, secrets
+- **9 Frontend Components** — Reusable UI building blocks
+- **9 React Hooks** — State management, real-time, auth
+- **6 Test Suites** — Backend, frontend, security, integration
+- **70+ Git Commits** — Active development
 
 ## 🚦 Quick Start
 
