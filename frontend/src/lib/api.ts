@@ -165,4 +165,12 @@ export const healthAPI = {
   detailed: () => api.get('/health/detailed'),
 };
 
+// Webhooks
+export const webhooksAPI = {
+  list: () => api.get('/webhooks'),
+  create: (data: any) => api.post('/webhooks', data),
+  delete: (id: string) => api.delete(`/webhooks/${id}`),
+  test: (id: string) => api.post(`/webhooks/${id}/test`),
+};
+
 export default api;

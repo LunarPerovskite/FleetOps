@@ -18,6 +18,8 @@ import DashboardBuilder from './pages/DashboardBuilder'
 
 import CustomerService from './pages/CustomerService'
 
+import Webhooks from './pages/Webhooks'
+
 function App() {
   return (
     <ThemeProvider>
@@ -38,6 +40,7 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/audit" element={<AuditLog />} />
               <Route path="/dashboard-builder" element={<DashboardBuilder />} />
+              <Route path="/webhooks" element={<Webhooks />} />
             </Route>
           </Routes>
         </WebSocketProvider>
