@@ -16,6 +16,8 @@ import Settings from './pages/Settings'
 import AuditLog from './pages/AuditLog'
 import DashboardBuilder from './pages/DashboardBuilder'
 
+import CustomerService from './pages/CustomerService'
+
 function App() {
   return (
     <ThemeProvider>
@@ -30,6 +32,7 @@ function App() {
               <Route path="/agents" element={<Agents />} />
               <Route path="/approvals" element={<Approvals />} />
               <Route path="/events" element={<Events />} />
+              <Route path="/customer-service" element={<CustomerService />} />
               <Route path="/hierarchy" element={<Hierarchy />} />
               <Route path="/providers" element={<ProviderConfig />} />
               <Route path="/settings" element={<Settings />} />
