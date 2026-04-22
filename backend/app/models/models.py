@@ -92,7 +92,7 @@ class Agent(Base):
     parent_agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
     status = Column(String(50), default="active")
     cost_to_date = Column(Float, default=0.0)
-    max_sub_agents = Column(Integer, default=5)
+    max_sub_agents = Column(Integer, nullable=True)  # null = unlimited sub-agents, any number = limit
     created_at = Column(DateTime, default=datetime.utcnow)
     
     organization = relationship("Organization", back_populates="agents")

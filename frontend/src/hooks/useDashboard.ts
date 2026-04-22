@@ -75,3 +75,14 @@ export function useEvents(taskId?: string) {
     refetchInterval: 10000
   })
 }
+
+export function useQueueStats() {
+  return useQuery({
+    queryKey: ['customer-service', 'queue-stats'],
+    queryFn: async () => {
+      const { data } = await api.get('/customer-service/queue/stats')
+      return data
+    },
+    refetchInterval: 10000
+  })
+}

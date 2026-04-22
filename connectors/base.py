@@ -242,7 +242,8 @@ class FleetOpsConnector(ABC):
     
     async def create_sub_agent(self, name: str, config: AgentConfig) -> 'FleetOpsConnector':
         """Create sub-agent under this agent"""
-        if len(self.sub_agents) >= self.config.max_sub_agents:
+        # Unlimited sub-agents by default
+        if self.config.max_sub_agents is not None and len(self.sub_agents) >= self.config.max_sub_agents:
             raise ValueError(f"Max sub-agents ({self.config.max_sub_agents}) reached")
         
         # Create connector for sub-agent
