@@ -359,7 +359,6 @@ class ClerkAuthAdapter(BaseAuthAdapter):
             
             return None
 
-# Import all adapters
 from .auth0_adapter import Auth0AuthAdapter
 from .okta_adapter import OktaAuthAdapter
 
