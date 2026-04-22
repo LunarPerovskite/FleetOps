@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: fleetops
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: fleetops/backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://fleetops:$(DB_PASSWORD)@postgres:5432/fleetops"
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fleetops-secrets
+              key: secret-key
+        envFrom:
+        - secretRef:
+            name: fleetops-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: fleetops
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress
+  namespace: fleetops
+spec:
+  rules:
+  - host: api.fleetops.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend
+            port:
+              number: 80
