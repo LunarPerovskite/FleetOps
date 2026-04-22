@@ -9,10 +9,13 @@ import Hierarchy from './pages/Hierarchy'
 import Login from './pages/Login'
 import ProviderConfig from './pages/ProviderConfig'
 
+import Onboarding from './pages/Onboarding'
+
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/onboarding" element={<Onboarding />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/tasks" element={<Tasks />} />
