@@ -256,7 +256,7 @@ class TestRateLimiter:
         assert result["allowed"] == False
         assert result["remaining"] == 0
 
-classTestEvidenceSigning:
+class TestEvidenceSigning:
     """Test cryptographic evidence"""
     
     def test_event_signature(self):
@@ -288,7 +288,7 @@ classTestEvidenceSigning:
         # Verify matches
         assert hashlib.sha256(str(event_data).encode()).hexdigest() == signature
 
-classTestWebhookDelivery:
+class TestWebhookDelivery:
     """Test webhook delivery"""
     
     def test_signature_generation(self):
@@ -305,7 +305,7 @@ classTestWebhookDelivery:
         assert len(signature) == 64
         assert isinstance(signature, str)
 
-classTestTranslationService:
+class TestTranslationService:
     """Test translation"""
     
     async def test_detect_language(self):
