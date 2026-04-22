@@ -1,97 +1,176 @@
 import { useState, useEffect } from 'react';
-import { dashboardAPI, tasksAPI, agentsAPI, approvalsAPI } from '../lib/api';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { dashboardAPI } from '../lib/api';
 
-interface DashboardStats {
-  totalTasks: number;
-  completedTasks: number;
-  activeAgents: number;
-  pendingApprovals: number;
-  successRate: number;
-  costSavings: number;
+export interface DashboardStats {
+  active_agents: number;
+  tasks_in_progress: number;
+  pending_approvals: number;
+  cost_today: number;
+  tasks_completed_today: number;
+  success_rate: number;
+  total_tasks: number;
+  total_agents: number;
 }
 
-interface RecentActivity {
+export interface RecentActivity {
   id: string;
-  type: string;
+  type: 'task_created' | 'task_completed' | 'approval_required' | 
+         'agent_created' | 'event_occurred' | 'error';
   description: string;
   timestamp: string;
   user?: string;
   agent?: string;
+  metadata?: Record<string, any>;
 }
 
-export function useDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activities, setActivities] = useState<RecentActivity[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [agents, setAgents] = useState<any[]>([]);
-  const [approvals, setApprovals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+// Hook: Dashboard Stats
+export function useDashboardStats() {
+  const [data, setData] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // WebSocket for real-time updates
-  const ws = useWebSocket();
-  
   useEffect(() => {
-    if (ws) {
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'dashboard_update') {
-          fetchDashboardData();
-        }
-      };
-    }
-  }, [ws]);
-  
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Fetch all data in parallel
-      const [statsRes, activityRes, tasksRes, agentsRes, approvalsRes] = await Promise.all([
-        dashboardAPI.stats().catch(() => null),
-        dashboardAPI.activity().catch(() => []),
-        tasksAPI.list({ status: 'active', page_size: 5 }).catch(() => []),
-        agentsAPI.list().catch(() => []),
-        approvalsAPI.list({ status: 'pending' }).catch(() => []),
-      ]);
-      
-      if (statsRes) setStats(statsRes);
-      if (activityRes) setActivities(activityRes);
-      if (tasksRes?.tasks) setTasks(tasksRes.tasks);
-      if (agentsRes?.agents) setAgents(agentsRes.agents);
-      if (approvalsRes?.approvals) setApprovals(approvalsRes.approvals);
-      
-    } catch (err: any) {
-      setError(err.message || 'Failed to load dashboard data');
-      console.error('Dashboard error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Initial load
-  useEffect(() => {
-    fetchDashboardData();
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        const response = await dashboardAPI.stats();
+        setData(response);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load stats');
+        console.error('Stats error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchStats();
     
     // Refresh every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000);
+    const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
   
-  const refresh = () => {
-    fetchDashboardData();
-  };
+  return { data, isLoading, error, refresh: () => {} };
+}
+
+// Hook: Recent Tasks
+export function useTasks(limit: number = 5) {
+  const [data, setData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  return {
-    stats,
-    activities,
-    tasks,
-    agents,
-    approvals,
-    loading,
-    error,
-    refresh,
-  };
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setIsLoading(true);
+        // Use search API to get recent tasks
+        const response = await dashboardAPI.activity();
+        // Filter for task-related activities
+        const tasks = response
+          ?.filter((a: any) => ['task_created', 'task_completed'].includes(a.type))
+          ?.slice(0, limit) || [];
+        setData(tasks);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load tasks');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTasks();
+  }, [limit]);
+  
+  return { data, isLoading, error };
+}
+
+// Hook: Agents
+export function useAgents() {
+  const [data, setData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        setIsLoading(true);
+        const response = await dashboardAPI.activity();
+        // Filter for agent-related activities
+        const agents = response
+          ?.filter((a: any) => ['agent_created'].includes(a.type))
+          ?.slice(0, 5) || [];
+        setData(agents);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load agents');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAgents();
+  }, []);
+  
+  return { data, isLoading, error };
+}
+
+// Hook: Pending Approvals
+export function usePendingApprovals() {
+  const [data, setData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchApprovals = async () => {
+      try {
+        setIsLoading(true);
+        const response = await dashboardAPI.activity();
+        // Filter for approval-related activities
+        const approvals = response
+          ?.filter((a: any) => ['approval_required'].includes(a.type))
+          ?.slice(0, 5) || [];
+        setData(approvals);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load approvals');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchApprovals();
+  }, []);
+  
+  return { data, isLoading, error };
+}
+
+// Hook: Recent Activity
+export function useActivity(limit: number = 10) {
+  const [data, setData] = useState<RecentActivity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        setIsLoading(true);
+        const response = await dashboardAPI.activity();
+        setData(response?.slice(0, limit) || []);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load activity');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchActivity();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchActivity, 30000);
+    return () => clearInterval(interval);
+  }, [limit]);
+  
+  return { data, isLoading, error };
 }
