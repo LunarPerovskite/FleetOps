@@ -1,88 +1,97 @@
-import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
+import { useState, useEffect } from 'react';
+import { dashboardAPI, tasksAPI, agentsAPI, approvalsAPI } from '../lib/api';
+import { useWebSocket } from '../hooks/useWebSocket';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-const api = axios.create({
-  baseURL: `${API_URL}/api/v1`,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('fleetops_token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
-  }
-  return config
-})
-
-export function useDashboardStats() {
-  return useQuery({
-    queryKey: ['dashboard', 'overview'],
-    queryFn: async () => {
-      const { data } = await api.get('/dashboard/overview')
-      return data
-    },
-    refetchInterval: 30000 // Refresh every 30 seconds
-  })
+interface DashboardStats {
+  totalTasks: number;
+  completedTasks: number;
+  activeAgents: number;
+  pendingApprovals: number;
+  successRate: number;
+  costSavings: number;
 }
 
-export function useTasks(status?: string) {
-  return useQuery({
-    queryKey: ['tasks', status],
-    queryFn: async () => {
-      const params = status ? { status } : {}
-      const { data } = await api.get('/tasks/', { params })
-      return data
-    },
-    refetchInterval: 10000
-  })
+interface RecentActivity {
+  id: string;
+  type: string;
+  description: string;
+  timestamp: string;
+  user?: string;
+  agent?: string;
 }
 
-export function useAgents() {
-  return useQuery({
-    queryKey: ['agents'],
-    queryFn: async () => {
-      const { data } = await api.get('/agents/')
-      return data
-    },
-    refetchInterval: 30000
-  })
-}
-
-export function usePendingApprovals() {
-  return useQuery({
-    queryKey: ['approvals', 'pending'],
-    queryFn: async () => {
-      const { data } = await api.get('/approvals/pending')
-      return data
-    },
-    refetchInterval: 5000 // Check every 5 seconds
-  })
-}
-
-export function useEvents(taskId?: string) {
-  return useQuery({
-    queryKey: ['events', taskId],
-    queryFn: async () => {
-      const params = taskId ? { task_id: taskId } : {}
-      const { data } = await api.get('/events/', { params })
-      return data
-    },
-    refetchInterval: 10000
-  })
-}
-
-export function useQueueStats() {
-  return useQuery({
-    queryKey: ['customer-service', 'queue-stats'],
-    queryFn: async () => {
-      const { data } = await api.get('/customer-service/queue/stats')
-      return data
-    },
-    refetchInterval: 10000
-  })
+export function useDashboard() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<RecentActivity[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [approvals, setApprovals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // WebSocket for real-time updates
+  const ws = useWebSocket();
+  
+  useEffect(() => {
+    if (ws) {
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'dashboard_update') {
+          fetchDashboardData();
+        }
+      };
+    }
+  }, [ws]);
+  
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch all data in parallel
+      const [statsRes, activityRes, tasksRes, agentsRes, approvalsRes] = await Promise.all([
+        dashboardAPI.stats().catch(() => null),
+        dashboardAPI.activity().catch(() => []),
+        tasksAPI.list({ status: 'active', page_size: 5 }).catch(() => []),
+        agentsAPI.list().catch(() => []),
+        approvalsAPI.list({ status: 'pending' }).catch(() => []),
+      ]);
+      
+      if (statsRes) setStats(statsRes);
+      if (activityRes) setActivities(activityRes);
+      if (tasksRes?.tasks) setTasks(tasksRes.tasks);
+      if (agentsRes?.agents) setAgents(agentsRes.agents);
+      if (approvalsRes?.approvals) setApprovals(approvalsRes.approvals);
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard data');
+      console.error('Dashboard error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Initial load
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+  
+  const refresh = () => {
+    fetchDashboardData();
+  };
+  
+  return {
+    stats,
+    activities,
+    tasks,
+    agents,
+    approvals,
+    loading,
+    error,
+    refresh,
+  };
 }
