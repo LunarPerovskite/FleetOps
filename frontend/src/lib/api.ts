@@ -1,4 +1,5 @@
 import axios from 'axios';
+import axiosRetry from 'axios-retry';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -7,6 +8,18 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000,  // 30 second timeout
+});
+
+// Retry failed requests (3 retries with exponential backoff)
+axiosRetry(api, {
+  retries: 3,
+  retryDelay: axiosRetry.exponentialDelay,
+  retryCondition: (error) => {
+    // Retry on network errors or 5xx responses
+    return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+      (error.response?.status >= 500 && error.response?.status < 600);
+  }
 });
 
 // Add auth token to requests
