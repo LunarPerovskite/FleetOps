@@ -1,0 +1,234 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fleetops-config
+  namespace: fleetops
+data:
+  regions: |
+    primary: us-east-1
+    secondary:
+      - us-west-2
+      - eu-west-1
+      - ap-southeast-1
+    replication:
+      strategy: async
+      lag_threshold_ms: 1000
+    failover:
+      automatic: true
+      health_check_interval: 30
+      failure_threshold: 3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-primary
+  namespace: fleetops
+  labels:
+    app: backend
+    region: primary
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: backend
+      region: primary
+  template:
+    metadata:
+      labels:
+        app: backend
+        region: primary
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - backend
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: backend
+        image: fleetops/backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: REGION
+          value: "us-east-1"
+        - name: ROLE
+          value: "primary"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: fleetops-db-secrets
+              key: primary-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: fleetops-db-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-secondary
+  namespace: fleetops
+  labels:
+    app: backend
+    region: secondary
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+      region: secondary
+  template:
+    metadata:
+      labels:
+        app: backend
+        region: secondary
+    spec:
+      containers:
+      - name: backend
+        image: fleetops/backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: REGION
+          value: "us-west-2"
+        - name: ROLE
+          value: "secondary"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: fleetops-db-secrets
+              key: secondary-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: fleetops-db-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-global
+  namespace: fleetops
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+  - name: websocket
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fleetops-global
+  namespace: fleetops
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+  - hosts:
+    - api.fleetops.io
+    - app.fleetops.io
+    - ws.fleetops.io
+    secretName: fleetops-tls
+  rules:
+  - host: api.fleetops.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-global
+            port:
+              number: 80
+  - host: ws.fleetops.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-global
+            port:
+              number: 8080
+---
+# Database replication
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: db-replication-check
+  namespace: fleetops
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: replication-check
+            image: postgres:16-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              psql "$PRIMARY_URL" -c "SELECT pg_is_in_recovery();" && \
+              psql "$SECONDARY_URL" -c "SELECT pg_last_xact_replay_timestamp();"
+            env:
+            - name: PRIMARY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fleetops-db-secrets
+                  key: primary-url
+            - name: SECONDARY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fleetops-db-secrets
+                  key: secondary-url
+          restartPolicy: OnFailure
