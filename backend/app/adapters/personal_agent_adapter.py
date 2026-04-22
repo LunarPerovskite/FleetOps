@@ -22,7 +22,14 @@ import httpx
 from enum import Enum
 
 class AgentType(str, Enum):
-    """Supported agent types"""
+    """Supported agent types - ALL adapters"""
+    # IDE Agents
+    CLAUDE_CODE = "claude_code"
+    COPILOT = "copilot"
+    CURSOR = "cursor"
+    AIDER = "aider"
+    DEVIN = "devin"
+    CODY = "cody"
     # Personal
     OPENCLAW = "openclaw"
     HERMES = "hermes"
@@ -68,6 +75,12 @@ class PersonalAgentAdapter:
     
     def _initialize_adapter(self):
         """Initialize the specific adapter based on agent type"""
+        # IDE Agents
+        elif self.agent_type in [AgentType.CLAUDE_CODE, AgentType.COPILOT, AgentType.CURSOR, 
+                                  AgentType.AIDER, AgentType.DEVIN, AgentType.CODY]:
+            from app.adapters.ide_agent_adapter import UnifiedIDEAgentAdapter, IDEAgentType
+            ide_type = IDEAgentType(self.agent_type.value)
+            self._adapter = UnifiedIDEAgentAdapter(ide_type)
         # Personal agents
         if self.agent_type in [AgentType.OPENCLAW]:
             from app.adapters.openclaw_adapter import openclaw_adapter

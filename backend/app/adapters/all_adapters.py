@@ -872,6 +872,54 @@ local_llm_adapter = LocalLLMAdapter()
 # ═══════════════════════════════════════
 
 ALL_ADAPTERS = {
+    "claude_code": {
+        "name": "Claude Code",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": True,
+        "url_env": "CLAUDE_CODE_CLI",
+        "description": "Anthropic's CLI-based AI assistant for file editing"
+    },
+    "copilot": {
+        "name": "GitHub Copilot",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": True,
+        "url_env": "GITHUB_TOKEN",
+        "description": "GitHub's AI pair programmer for code suggestions"
+    },
+    "cursor": {
+        "name": "Cursor",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": True,
+        "url_env": "CURSOR_API_URL",
+        "description": "AI-powered IDE with Composer and Agent mode"
+    },
+    "aider": {
+        "name": "Aider",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": True,
+        "url_env": "AIDER_CLI",
+        "description": "CLI pair programming with multiple LLMs"
+    },
+    "devin": {
+        "name": "Devin",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": True,
+        "url_env": "DEVIN_API_KEY",
+        "description": "Autonomous AI software engineer from Cognition"
+    },
+    "cody": {
+        "name": "Cody",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": False,
+        "url_env": "CODY_API_KEY",
+        "description": "Sourcegraph's AI code intelligence"
+    },
     "openclaw": {
         "name": "OpenClaw",
         "category": "personal",
@@ -1037,6 +1085,7 @@ def get_adapters_by_category(category: str) -> List[Dict[str, Any]]:
 
 # Categories
 ADAPTER_CATEGORIES = {
+    "ide": "IDE Agents (Claude Code, Copilot, Cursor, Aider, Devin, Cody)",
     "personal": "Personal AI Assistants (OpenClaw, Hermes)",
     "multi-agent": "Multi-Agent Frameworks (CrewAI, AutoGen, MetaGPT, ChatDev, GPTeam, AgentVerse, PraisonAI)",
     "framework": "Agent Frameworks (LangChain, LlamaIndex, TaskWeaver)",

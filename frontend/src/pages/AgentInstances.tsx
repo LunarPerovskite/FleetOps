@@ -504,6 +504,7 @@ function CreateInstanceModal({ agentTypes, onClose, onCreated }: {
                   <div className="flex items-center gap-2">
                     <div className="font-medium">{type.name}</div>
                     <span className={`text-xs px-2 py-0.5 rounded ${
+                      type.category === 'ide' ? 'bg-pink-100 text-pink-700' :
                       type.category === 'multi-agent' ? 'bg-purple-100 text-purple-700' :
                       type.category === 'framework' ? 'bg-blue-100 text-blue-700' :
                       type.category === 'autonomous' ? 'bg-orange-100 text-orange-700' :
