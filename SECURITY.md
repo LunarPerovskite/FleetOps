@@ -1,57 +1,90 @@
-# Security Policy
+# FleetOps Security
 
-## Supported Versions
+## Status: 🔒 Security Framework Implemented
 
-| Version | Supported |
-|---------|-----------|
-| 0.1.x (beta) | ✅ Current |
+### Implemented
+- ✅ Field-level encryption for credentials (Fernet + PBKDF2)
+- ✅ Audit logging (immutable chain hashing)
+- ✅ Rate limiting (per-endpoint)
+- ✅ Security headers (all major headers)
+- ✅ Input sanitization (SQLi + XSS detection)
+- ✅ Output sanitization (credential redaction)
+- ✅ Security middleware (FastAPI)
+- ✅ Row-level security (PostgreSQL RLS)
+- ✅ Data retention policies
+- ✅ Secret manager abstraction (Vault/AWS/Azure ready)
+- ✅ Comprehensive security documentation
 
-## Reporting a Vulnerability
+### Architecture
+```
+User (JWT + 2FA) <-> Rate Limiting <-> Input Sanitization <-> 
+FleetOps <-> Audit Log (Immutable) <-> 
+Encrypted DB (RLS) <-> 
+Agent Communication (mTLS)
+```
 
-We take security seriously. If you discover a security vulnerability, please report it responsibly.
+## Key Features
 
-### How to Report
+### 1. Credential Encryption
+All agent credentials encrypted at rest:
+```python
+# AES-256 via Fernet
+encrypted = field_encryption.encrypt(api_key)
+decrypted = field_encryption.decrypt(encrypted)
+```
 
-1. **Do NOT** open a public issue
-2. Email security@fleetops.io with:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
+### 2. Immutable Audit Trail
+```
+Entry 1: hash=abc123, prev=000000
+Entry 2: hash=def456, prev=abc123
+Entry 3: hash=ghi789, prev=def456
+...
+(Tampering breaks the chain)
+```
 
-### Response Timeline
+### 3. No Agent-to-Agent Communication
+```
+❌ AgentA -> AgentB (UNSAFE - not supported)
+✅ AgentA -> FleetOps -> Human -> AgentB (SAFE)
+```
 
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 7 days
-- **Fix Released**: Within 30 days (critical), 60 days (high), 90 days (medium)
-- **Public Disclosure**: After fix is released and users have had time to update
+### 4. Output Sanitization
+Agent outputs automatically scrubbed:
+- API keys (sk-...)
+- Passwords
+- Tokens
+- Private keys
+- Email addresses
 
-### What We Promise
+## Configuration
 
-- We will acknowledge your report promptly
-- We will investigate thoroughly
-- We will fix verified vulnerabilities
-- We will credit you in the advisory (unless you prefer anonymity)
-- We will not take legal action against researchers who follow responsible disclosure
+### Required
+```bash
+FLEETOPS_MASTER_KEY=your-32-char-key-here-please
+JWT_SECRET=another-32-char-secret-here
+```
 
-## Security Features
+### Rate Limits
+- Auth endpoints: 10 req/min
+- API endpoints: 100 req/min  
+- Public: 30 req/min
 
-FleetOps includes:
+## Compliance
+- GDPR/CCPA: Data export + right to deletion
+- SOC 2: Audit trail + access controls
+- HIPAA: Field encryption + audit logging (with proper configuration)
 
-- JWT authentication with configurable expiry
-- CSP, XSS, CSRF protection
-- Rate limiting on all endpoints
-- Input validation and sanitization
-- Immutable evidence store with cryptographic signatures
-- Role-based access control
+## Security Checklist
+- [x] Field-level encryption
+- [x] Audit logging
+- [x] Rate limiting
+- [x] Input/output sanitization
+- [x] Security headers
+- [x] CORS configuration
+- [ ] 2FA implementation (ready, needs UI)
+- [ ] mTLS (infrastructure-dependent)
+- [ ] Secret manager integration (ready, needs config)
 
-## Best Practices
+---
 
-When deploying FleetOps:
-
-1. Use HTTPS in production
-2. Set strong JWT secrets
-3. Enable rate limiting
-4. Keep dependencies updated
-5. Review provider security configurations
-6. Enable monitoring and alerting
+*See docs/SECURITY_DEEP_DIVE.md for full implementation details*
