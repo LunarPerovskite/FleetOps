@@ -1,129 +1,346 @@
 """LLM Service Adapter for FleetOps
 
 Integration with external LLM services and APIs:
-- Perplexity (search + LLM)
-- OpenRouter (unified LLM API)
-- Replicate (model hosting)
-- Together AI
-- AnyScale
-- Fireworks AI
-- Groq
-- Mistral AI
-- Cohere
-- Anthropic Claude API
-- OpenAI API
-- Google Gemini
-- Azure OpenAI
+- Perplexity, OpenRouter, Replicate, Together AI, Groq, etc.
 
-Token & Cost Tracking:
-- Tracks tokens used (input/output)
-- Calculates cost per request
-- Aggregates costs per agent/task
-- Budget alerts and limits
+Uses REAL usage data from API responses.
+Calculates cost from actual token counts + dynamic pricing.
 """
 
 import os
-from typing import Dict, Any, Optional, List, AsyncGenerator
-from datetime import datetime
-from decimal import Decimal
+from typing import Dict, Any, Optional, List
 import httpx
-import json
 
-class TokenTracker:
-    """Tracks token usage and costs across all LLM services"""
+from app.core.usage_extraction import RealUsageExtractor
+from app.core.cost_tracking import cost_tracker
+
+
+class PerplexityAdapter:
+    """FleetOps adapter for Perplexity API"""
     
     def __init__(self):
-        self.usage_log: List[Dict] = []
-        self.budget_limits: Dict[str, Decimal] = {}
-        self.cost_per_1k_tokens: Dict[str, Dict[str, Decimal]] = {
-            "openai": {
-                "gpt-4": {"input": Decimal("0.03"), "output": Decimal("0.06")},
-                "gpt-4-turbo": {"input": Decimal("0.01"), "output": Decimal("0.03")},
-                "gpt-3.5-turbo": {"input": Decimal("0.0005"), "output": Decimal("0.0015")},
-            },
-            "anthropic": {
-                "claude-3-opus": {"input": Decimal("0.015"), "output": Decimal("0.075")},
-                "claude-3-sonnet": {"input": Decimal("0.003"), "output": Decimal("0.015")},
-                "claude-3-haiku": {"input": Decimal("0.00025"), "output": Decimal("0.00125")},
-            },
-            "perplexity": {
-                "sonar": {"input": Decimal("0.0005"), "output": Decimal("0.0015")},
-                "sonar-pro": {"input": Decimal("0.003"), "output": Decimal("0.015")},
-            },
-            "groq": {
-                "llama3-8b": {"input": Decimal("0.0001"), "output": Decimal("0.0001")},
-                "llama3-70b": {"input": Decimal("0.0006"), "output": Decimal("0.0008")},
-                "mixtral-8x7b": {"input": Decimal("0.0003"), "output": Decimal("0.0005")},
-            },
-            "together": {
-                "llama-3-70b": {"input": Decimal("0.0009"), "output": Decimal("0.0009")},
-            },
-            "openrouter": {
-                "default": {"input": Decimal("0.001"), "output": Decimal("0.002")},
+        self.api_key = os.getenv("PERPLEXITY_API_KEY", "")
+        self.base_url = "https://api.perplexity.ai"
+        self.timeout = int(os.getenv("PERPLEXITY_TIMEOUT", "60"))
+        self.default_model = os.getenv("PERPLEXITY_MODEL", "sonar")
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=httpx.Timeout(self.timeout, connect=10),
+            follow_redirects=True
+        )
+    
+    async def query(self, question: str, task_id: str,
+                   model: Optional[str] = None) -> Dict[str, Any]:
+        """Query Perplexity and track REAL usage"""
+        try:
+            payload = {
+                "model": model or self.default_model,
+                "messages": [
+                    {"role": "system", "content": "Be precise and concise. Cite sources."},
+                    {"role": "user", "content": question}
+                ],
+                "max_tokens": 2000,
+                "temperature": 0.2
             }
-        }
+            
+            response = await self.client.post("/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Extract REAL usage from response
+            usage = await RealUsageExtractor.extract_perplexity_usage(data)
+            
+            # Track with actual token counts
+            cost_result = await cost_tracker.track_usage(
+                service="perplexity",
+                model=data.get("model", model or self.default_model),
+                agent_id="perplexity_adapter",
+                task_id=task_id,
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                metadata={
+                    "has_real_usage": usage["has_real_usage"],
+                    "citations": usage.get("citations", 0)
+                }
+            )
+            
+            return {
+                "status": "success",
+                "answer": data["choices"][0]["message"]["content"],
+                "citations": data.get("citations", []),
+                "model": data.get("model"),
+                "usage": usage,
+                "cost_usd": cost_result["cost_usd"]
+            }
+            
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
     
-    def calculate_cost(self, service: str, model: str, 
-                      input_tokens: int, output_tokens: int) -> Decimal:
-        """Calculate cost for a request"""
-        rates = self.cost_per_1k_tokens.get(service, {}).get(model, 
-                 self.cost_per_1k_tokens.get(service, {}).get("default", 
-                     {"input": Decimal("0.001"), "output": Decimal("0.002")}))
-        
-        input_cost = (Decimal(input_tokens) / 1000) * rates["input"]
-        output_cost = (Decimal(output_tokens) / 1000) * rates["output"]
-        total = input_cost + output_cost
-        
-        return total.quantize(Decimal("0.000001"))
+    async def close(self):
+        await self.client.aclose()
+
+
+class OpenRouterAdapter:
+    """FleetOps adapter for OpenRouter"""
     
-    def track_usage(self, service: str, model: str, task_id: str,
-                   input_tokens: int, output_tokens: int,
-                   cost: Optional[Decimal] = None) -> Dict:
-        """Track token usage for a request"""
-        if cost is None:
-            cost = self.calculate_cost(service, model, input_tokens, output_tokens)
+    def __init__(self):
+        self.api_key = os.getenv("OPENROUTER_API_KEY", "")
+        self.base_url = "https://openrouter.ai/api/v1"
+        self.timeout = int(os.getenv("OPENROUTER_TIMEOUT", "120"))
         
-        entry = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "service": service,
-            "model": model,
-            "task_id": task_id,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "total_tokens": input_tokens + output_tokens,
-            "cost_usd": str(cost),
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://fleetops.local",
+            "X-Title": "FleetOps"
         }
         
-        self.usage_log.append(entry)
-        return entry
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=httpx.Timeout(self.timeout, connect=10),
+            follow_redirects=True
+        )
     
-    def get_usage_summary(self, task_id: Optional[str] = None) -> Dict:
-        """Get usage summary for a task or all"""
-        entries = self.usage_log
-        if task_id:
-            entries = [e for e in entries if e["task_id"] == task_id]
+    async def chat(self, messages: List[Dict], task_id: str,
+                  model: Optional[str] = None) -> Dict[str, Any]:
+        """Chat via OpenRouter and track REAL usage + cost"""
+        try:
+            payload = {
+                "model": model or "anthropic/claude-3.5-sonnet",
+                "messages": messages,
+                "max_tokens": 2000
+            }
+            
+            response = await self.client.post("/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Extract REAL usage + cost from headers
+            headers = dict(response.headers)
+            usage = await RealUsageExtractor.extract_openrouter_usage(data, headers)
+            
+            # Track with actual data
+            cost_result = await cost_tracker.track_usage(
+                service="openrouter",
+                model=data.get("model", model or "unknown"),
+                agent_id="openrouter_adapter",
+                task_id=task_id,
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                metadata={
+                    "has_real_usage": usage["has_real_usage"],
+                    "has_real_cost": usage.get("has_real_cost", False),
+                    "cost_from_provider": usage.get("cost_from_provider")
+                }
+            )
+            
+            return {
+                "status": "success",
+                "content": data["choices"][0]["message"]["content"],
+                "model": data.get("model"),
+                "usage": usage,
+                "cost_usd": cost_result["cost_usd"]
+            }
+            
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+    
+    async def close(self):
+        await self.client.aclose()
+
+
+class GroqAdapter:
+    """FleetOps adapter for Groq API"""
+    
+    def __init__(self):
+        self.api_key = os.getenv("GROQ_API_KEY", "")
+        self.base_url = "https://api.groq.com/openai/v1"
+        self.timeout = int(os.getenv("GROQ_TIMEOUT", "60"))
         
-        total_input = sum(e["input_tokens"] for e in entries)
-        total_output = sum(e["output_tokens"] for e in entries)
-        total_cost = sum(Decimal(e["cost_usd"]) for e in entries)
-        
-        by_service = {}
-        for e in entries:
-            svc = e["service"]
-            if svc not in by_service:
-                by_service[svc] = {"tokens": 0, "cost": Decimal("0")}
-            by_service[svc]["tokens"] += e["total_tokens"]
-            by_service[svc]["cost"] += Decimal(e["cost_usd"])
-        
-        return {
-            "total_requests": len(entries),
-            "total_input_tokens": total_input,
-            "total_output_tokens": total_output,
-            "total_tokens": total_input + total_output,
-            "total_cost_usd": str(total_cost.quantize(Decimal("0.000001"))),
-            "by_service": {k: {"tokens": v["tokens"], "cost": str(v["cost"])} 
-                          for k, v in by_service.items()}
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
         }
+        
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=httpx.Timeout(self.timeout, connect=10),
+            follow_redirects=True
+        )
+    
+    async def chat(self, messages: List[Dict], task_id: str,
+                  model: str = "llama3-8b-8192") -> Dict[str, Any]:
+        """Chat via Groq and track REAL usage"""
+        try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "max_tokens": 4096
+            }
+            
+            response = await self.client.post("/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Extract REAL usage
+            usage = await RealUsageExtractor.extract_groq_usage(data)
+            
+            # Track with actual data
+            cost_result = await cost_tracker.track_usage(
+                service="groq",
+                model=data.get("model", model),
+                agent_id="groq_adapter",
+                task_id=task_id,
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                metadata={"has_real_usage": usage["has_real_usage"]}
+            )
+            
+            return {
+                "status": "success",
+                "content": data["choices"][0]["message"]["content"],
+                "model": data.get("model"),
+                "usage": usage,
+                "cost_usd": cost_result["cost_usd"]
+            }
+            
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+    
+    async def close(self):
+        await self.client.aclose()
+
+
+class TogetherAIAdapter:
+    """FleetOps adapter for Together AI"""
+    
+    def __init__(self):
+        self.api_key = os.getenv("TOGETHER_API_KEY", "")
+        self.base_url = "https://api.together.xyz/v1"
+        self.timeout = int(os.getenv("TOGETHER_TIMEOUT", "120"))
+        
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=httpx.Timeout(self.timeout, connect=10),
+            follow_redirects=True
+        )
+    
+    async def chat(self, messages: List[Dict], task_id: str,
+                  model: str = "meta-llama/Llama-3-70b-chat-hf") -> Dict[str, Any]:
+        """Chat via Together AI and track REAL usage"""
+        try:
+            payload = {
+                "model": model,
+                "messages": messages,
+                "max_tokens": 4096
+            }
+            
+            response = await self.client.post("/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Extract REAL usage
+            usage = await RealUsageExtractor.extract_together_usage(data)
+            
+            # Track with actual data
+            cost_result = await cost_tracker.track_usage(
+                service="together",
+                model=data.get("model", model),
+                agent_id="together_adapter",
+                task_id=task_id,
+                input_tokens=usage["input_tokens"],
+                output_tokens=usage["output_tokens"],
+                metadata={"has_real_usage": usage["has_real_usage"]}
+            )
+            
+            return {
+                "status": "success",
+                "content": data["choices"][0]["message"]["content"],
+                "model": data.get("model"),
+                "usage": usage,
+                "cost_usd": cost_result["cost_usd"]
+            }
+            
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+    
+    async def close(self):
+        await self.client.aclose()
+
+
+class UnifiedLLMAdapter:
+    """Unified adapter for all LLM services"""
+    
+    def __init__(self, service: str):
+        self.service = service.lower()
+        self._adapter = None
+        self._initialize()
+    
+    def _initialize(self):
+        if self.service == "perplexity":
+            self._adapter = PerplexityAdapter()
+        elif self.service == "openrouter":
+            self._adapter = OpenRouterAdapter()
+        elif self.service == "groq":
+            self._adapter = GroqAdapter()
+        elif self.service == "together":
+            self._adapter = TogetherAIAdapter()
+        else:
+            raise ValueError(f"Unsupported LLM service: {self.service}")
+    
+    async def chat(self, messages: List[Dict], task_id: str, **kwargs) -> Dict[str, Any]:
+        if hasattr(self._adapter, 'chat'):
+            return await self._adapter.chat(messages, task_id, **kwargs)
+        else:
+            return {"status": "error", "error": f"Chat not supported for {self.service}"}
+    
+    async def close(self):
+        if hasattr(self._adapter, 'close'):
+            await self._adapter.close()
+
+
+# ═══════════════════════════════════════
+# ADAPTER REGISTRY
+# ═══════════════════════════════════════
+
+LLM_SERVICES = {
+    "perplexity": {
+        "name": "Perplexity",
+        "type": "search_llm",
+        "features": ["web_search", "citations", "real_time"]
+    },
+    "openrouter": {
+        "name": "OpenRouter",
+        "type": "aggregator",
+        "features": ["multi_provider", "fallback", "cost_optimization"]
+    },
+    "groq": {
+        "name": "Groq",
+        "type": "inference",
+        "features": ["fast", "cheap", "open_models"]
+    },
+    "together": {
+        "name": "Together AI",
+        "type": "inference",
+        "features": ["open_source", "fine_tuning"]
+    }
+}
+
     
     def set_budget_limit(self, task_id: str, max_cost_usd: float):
         """Set budget limit for a task"""
