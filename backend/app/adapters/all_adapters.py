@@ -872,6 +872,14 @@ local_llm_adapter = LocalLLMAdapter()
 # ═══════════════════════════════════════
 
 ALL_ADAPTERS = {
+    "roo_code": {
+        "name": "Roo Code",
+        "category": "ide",
+        "adapter": "ide_agent_adapter",
+        "supports_governance": True,
+        "url_env": "ROO_CODE_CLI",
+        "description": "VS Code extension for autonomous coding (forked from Cline)"
+    },
     "claude_code": {
         "name": "Claude Code",
         "category": "ide",

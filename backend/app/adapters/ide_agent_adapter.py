@@ -42,6 +42,7 @@ class IDEAgentType(str, Enum):
     CONTINUE = "continue"                 # Continue.dev
     AIDER = "aider"                       # Aider (AI pair programming)
     DEVIN = "devin"                       # Cognition Devin
+    ROO_CODE = "roo_code"                 # Roo Code (VS Code extension)
 
 
 class ClaudeCodeAdapter:
@@ -542,6 +543,171 @@ class AiderAdapter:
             return {"status": "error", "error": str(e)}
 
 
+class RooCodeAdapter:
+    """FleetOps adapter for Roo Code
+    
+    Roo Code is a VS Code extension (forked from Cline) that:
+    - Operates as an autonomous coding agent inside VS Code
+    - Supports multiple LLM providers (Claude, OpenAI, Ollama, etc.)
+    - Can read files, edit code, run terminal commands, use browser
+    - Works with any codebase opened in VS Code
+    - Has Plan/Act/Ask modes for different autonomy levels
+    
+    FleetOps integration:
+    - Trigger Roo Code via CLI or API
+    - Capture proposed changes (git diff)
+    - Human reviews in FleetOps UI
+    - Approve/reject changes via git patch
+    """
+    
+    def __init__(self):
+        self.cli_path = os.getenv("ROO_CODE_CLI", "roo")
+        self.api_url = os.getenv("ROO_CODE_API_URL", "http://localhost:3002")
+        self.api_key = os.getenv("ROO_CODE_API_KEY", "")
+        self.timeout = int(os.getenv("ROO_CODE_TIMEOUT", "600"))
+        self.working_dir = os.getenv("ROO_CODE_WORKDIR", "/tmp/roo-work")
+        self.mode = os.getenv("ROO_CODE_MODE", "act")  # plan, act, ask
+        self.model = os.getenv("ROO_CODE_MODEL", "claude-3-5-sonnet-20241022")
+    
+    async def execute_task(self, task_id: str, instructions: str,
+                          repo_path: Optional[str] = None,
+                          files: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Execute task using Roo Code
+        
+        Args:
+            task_id: FleetOps task ID
+            instructions: Natural language instructions
+            repo_path: Path to git repository
+            files: Specific files to work on
+        """
+        try:
+            # Build command for Roo Code CLI
+            cmd = [
+                self.cli_path,
+                "--mode", self.mode,
+                "--model", self.model,
+                "--output", "json"
+            ]
+            
+            if repo_path:
+                cmd.extend(["--working-dir", repo_path])
+            
+            if files:
+                cmd.extend(["--files"] + files)
+            
+            # Add instructions
+            cmd.extend(["--message", instructions])
+            
+            # Run Roo Code
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+                cwd=repo_path or self.working_dir
+            )
+            
+            if result.returncode != 0:
+                return {
+                    "status": "error",
+                    "error": f"Roo Code exited with code {result.returncode}",
+                    "stderr": result.stderr[:1000]
+                }
+            
+            # Parse output
+            try:
+                output = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                output = {"raw_output": result.stdout}
+            
+            # Get git diff of changes
+            diff = await self._get_git_diff(repo_path or self.working_dir)
+            
+            return {
+                "status": "success",
+                "output": output,
+                "diff": diff,
+                "files_changed": self._parse_changed_files(diff),
+                "requires_approval": True,  # Always require approval for IDE agents
+                "mode": self.mode,
+                "model": self.model
+            }
+            
+        except subprocess.TimeoutExpired:
+            return {
+                "status": "error",
+                "error": f"Roo Code timed out after {self.timeout}s"
+            }
+        except FileNotFoundError:
+            return {
+                "status": "error",
+                "error": f"Roo Code CLI not found at {self.cli_path}. Install: npm install -g @roocode/cli"
+            }
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+    
+    async def _get_git_diff(self, repo_path: str) -> str:
+        """Get git diff of changes"""
+        try:
+            result = subprocess.run(
+                ["git", "diff"],
+                capture_output=True,
+                text=True,
+                cwd=repo_path
+            )
+            return result.stdout
+        except:
+            return ""
+    
+    def _parse_changed_files(self, diff: str) -> List[str]:
+        """Parse changed files from git diff"""
+        files = []
+        for line in diff.split('\n'):
+            if line.startswith('diff --git'):
+                parts = line.split(' ')
+                if len(parts) >= 3:
+                    file_path = parts[2].replace('b/', '')
+                    files.append(file_path)
+        return files
+    
+    async def apply_changes(self, repo_path: str, approved: bool = True) -> Dict[str, Any]:
+        """Apply or discard changes"""
+        try:
+            if approved:
+                subprocess.run(["git", "add", "-A"], cwd=repo_path, check=True)
+                return {
+                    "status": "success",
+                    "message": "Changes applied and staged"
+                }
+            else:
+                subprocess.run(["git", "checkout", "--", "."], cwd=repo_path, check=True)
+                return {
+                    "status": "discarded",
+                    "message": "Changes discarded"
+                }
+        except subprocess.CalledProcessError as e:
+            return {
+                "status": "error",
+                "error": f"Git operation failed: {e}"
+            }
+    
+    async def get_status(self) -> Dict[str, Any]:
+        """Check if Roo Code is available"""
+        try:
+            result = subprocess.run(
+                [self.cli_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            return {
+                "available": result.returncode == 0,
+                "version": result.stdout.strip() if result.returncode == 0 else None
+            }
+        except:
+            return {"available": False}
+
+
 class DevinAdapter:
     """FleetOps adapter for Cognition Devin
     
@@ -685,6 +851,8 @@ class UnifiedIDEAgentAdapter:
             self._adapter = CursorAdapter()
         elif self.agent_type == IDEAgentType.AIDER:
             self._adapter = AiderAdapter()
+        elif self.agent_type == IDEAgentType.ROO_CODE:
+            self._adapter = RooCodeAdapter()
         elif self.agent_type == IDEAgentType.DEVIN:
             self._adapter = DevinAdapter()
         else:
@@ -732,6 +900,14 @@ class UnifiedIDEAgentAdapter:
                 files=context.get("files")
             )
         
+        elif self.agent_type == IDEAgentType.ROO_CODE:
+            return await self._adapter.execute_task(
+                task_id=task_id,
+                instructions=instructions,
+                repo_path=context.get("repo_path"),
+                files=context.get("files")
+            )
+        
         elif self.agent_type == IDEAgentType.DEVIN:
             return await self._adapter.create_session(
                 task_id=task_id,
@@ -747,7 +923,7 @@ class UnifiedIDEAgentAdapter:
         """Approve or reject changes"""
         context = context or {}
         
-        if self.agent_type in [IDEAgentType.CLAUDE_CODE, IDEAgentType.AIDER]:
+        if self.agent_type in [IDEAgentType.CLAUDE_CODE, IDEAgentType.AIDER, IDEAgentType.ROO_CODE]:
             return await self._adapter.apply_changes(
                 repo_path=context.get("repo_path", "."),
                 approved=approved
@@ -803,6 +979,17 @@ class UnifiedIDEAgentAdapter:
                 "git_aware",
                 "multi_llm",
                 "automatic_commits"
+            ],
+            IDEAgentType.ROO_CODE: [
+                "vs_code_extension",
+                "multi_llm_support",
+                "plan_mode",
+                "act_mode",
+                "browser_usage",
+                "terminal_commands",
+                "file_editing",
+                "git_integration",
+                "autonomous_coding"
             ],
             IDEAgentType.DEVIN: [
                 "autonomous_execution",
