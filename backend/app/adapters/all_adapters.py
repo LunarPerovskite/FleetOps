@@ -1093,11 +1093,12 @@ def get_adapters_by_category(category: str) -> List[Dict[str, Any]]:
 
 # Categories
 ADAPTER_CATEGORIES = {
-    "ide": "IDE Agents (Claude Code, Copilot, Cursor, Aider, Devin, Cody)",
+    "ide": "IDE Agents (Claude Code, Copilot, Cursor, Aider, Devin, Cody, Roo Code)",
     "personal": "Personal AI Assistants (OpenClaw, Hermes)",
     "multi-agent": "Multi-Agent Frameworks (CrewAI, AutoGen, MetaGPT, ChatDev, GPTeam, AgentVerse, PraisonAI)",
     "framework": "Agent Frameworks (LangChain, LlamaIndex, TaskWeaver)",
     "autonomous": "Autonomous Agents (BabyAGI, SuperAGI)",
     "local-llm": "Local LLMs (Ollama, vLLM, TGI)",
+    "llm-service": "LLM Services (Perplexity, OpenRouter, Replicate, Groq, Together)",
     "custom": "Custom Integrations"
 }
