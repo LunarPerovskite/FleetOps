@@ -5,7 +5,7 @@ import Tasks from './pages/Tasks'
 import Agents from './pages/Agents'
 import Approvals from './pages/Approvals'
 import Events from './pages/Events'
-import Login from './pages/Login'
+import Hierarchy from './pages/Hierarchy'
 
 function App() {
   return (
@@ -17,6 +17,7 @@ function App() {
         <Route path="/agents" element={<Agents />} />
         <Route path="/approvals" element={<Approvals />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/hierarchy" element={<Hierarchy />} />
       </Route>
     </Routes>
   )
