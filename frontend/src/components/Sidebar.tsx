@@ -1,5 +1,18 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CheckSquare, Bot, Shield, FileText, Settings } from 'lucide-react'
+import { 
+  LayoutDashboard, 
+  CheckSquare, 
+  Bot, 
+  Shield, 
+  FileText, 
+  Settings,
+  MessageCircle,
+  Users,
+  ShieldCheck,
+  LayoutTemplate,
+  Plug,
+  Zap
+} from 'lucide-react'
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -7,6 +20,12 @@ const navItems = [
   { path: '/agents', icon: Bot, label: 'Agents' },
   { path: '/approvals', icon: Shield, label: 'Approvals' },
   { path: '/events', icon: FileText, label: 'Events' },
+  { path: '/customer-service', icon: MessageCircle, label: 'Customer Service' },
+  { path: '/hierarchy', icon: Users, label: 'Hierarchy' },
+  { path: '/audit', icon: ShieldCheck, label: 'Audit Log' },
+  { path: '/dashboard-builder', icon: LayoutTemplate, label: 'Dashboard Builder' },
+  { path: '/providers', icon: Plug, label: 'Providers' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
 ]
 
 export default function Sidebar() {
