@@ -177,17 +177,6 @@ npm test
 python scripts/validate_env.py
 ```
 
-## 🏢 Self-Hosted vs SaaS
-
-| Feature | Self-Hosted (Free) | FleetOps Cloud |
-|---------|-------------------|----------------|
-| Agents | Unlimited | Unlimited |
-| Teams | Unlimited | Unlimited |
-| Tasks | Unlimited | Unlimited |
-| Storage | Your infrastructure | Managed |
-| Support | Community | Priority |
-| Price | Free | From $29/mo |
-
 ## 🤝 Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

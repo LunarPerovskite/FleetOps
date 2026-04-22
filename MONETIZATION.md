@@ -4,15 +4,37 @@
 
 **FleetOps is 100% open source. ALL features are free for self-hosted users. No artificial limits. No "freemium" feature-gating.**
 
-We believe the core platform should be fully accessible. Monetization is about **convenience, not restriction**.
+We believe the core platform should be fully accessible. Any future monetization will be about **convenience, not restriction**.
 
 ---
 
-## Revenue Streams
+## Current Status: Self-Hosted Only
 
-### 1. FleetOps Cloud (SaaS) — $29-$99/month
+FleetOps is currently **self-hosted only**. There is no cloud offering at this time.
 
-**What you get:**
+### What You Get (Free)
+
+✅ **All core features** — No exceptions
+✅ **Unlimited users** — No seat limits
+✅ **Unlimited tasks** — No volume caps
+✅ **Unlimited agents** — Connect as many as you want
+✅ **Full API access** — Complete REST API + WebSocket
+✅ **All integrations** — Every adapter, every provider
+✅ **All security features** — Auth, encryption, audit logs
+✅ **Full source code** — MIT licensed, fork it, modify it
+✅ **Community support** — GitHub issues, Discord, docs
+
+**Price: $0 forever**
+
+---
+
+## Future Revenue Streams (When Ready)
+
+### 1. FleetOps Cloud (SaaS) — Future Offering
+
+*Note: Not available yet. Will be launched when infrastructure is ready.*
+
+**What you would get:**
 - Managed hosting — we run everything for you
 - Automatic updates and security patches
 - 99.9% uptime SLA
@@ -20,24 +42,16 @@ We believe the core platform should be fully accessible. Monetization is about *
 - Priority email support
 - Custom domain + SSL
 
-**What you DON'T get (because it's already in the free version):**
-- All features are identical to self-hosted
-- No user limits
-- No task limits
-- No agent limits
-- No organization limits
-- Full API access
-
-**Pricing Tiers:**
+**Pricing Tiers (Future):**
 - **Starter** — $29/month: Up to 5 team members, standard support
 - **Pro** — $59/month: Up to 25 team members, priority support
-- **Business** — $99/month: Unlimited team members, dedicated support, custom integrations
+- **Business** — $99/month: Unlimited team members, dedicated support
 
-**Why pay?** You don't want to manage servers, backups, or updates. You just want to log in and use FleetOps.
+**Important: All features identical to self-hosted. You pay for convenience, not access.**
 
 ---
 
-### 2. Enterprise Support & Services — Custom Pricing
+### 2. Enterprise Support & Services — Future
 
 **For organizations that need:**
 - Dedicated account manager
@@ -56,35 +70,12 @@ We believe the core platform should be fully accessible. Monetization is about *
 ### 3. Marketplace (Future)
 
 **Premium Connectors & Templates:**
-- Industry-specific agent templates (legal, medical, finance)
+- Industry-specific agent templates
 - Advanced analytics dashboards
 - Custom workflow automation packs
-- Third-party integrations (Salesforce, HubSpot, etc.)
+- Third-party integrations
 
 **Revenue split:** 70% to creator, 30% to FleetOps
-
----
-
-### 4. Training & Certification (Future)
-
-- **FleetOps Admin Certification** — $199
-- **Agent Developer Certification** — $299
-- **Team Training Workshops** — $1,000/day
-- **Documentation & Best Practices Guides** — Free + Premium deep-dives
-
----
-
-## What's Always FREE
-
-✅ **All core features** — No exceptions
-✅ **Unlimited users** — No seat limits
-✅ **Unlimited tasks** — No volume caps
-✅ **Unlimited agents** — Connect as many as you want
-✅ **Full API access** — Complete REST API + WebSocket
-✅ **All integrations** — Every adapter, every provider
-✅ **All security features** — Auth, encryption, audit logs
-✅ **Full source code** — MIT licensed, fork it, modify it
-✅ **Community support** — GitHub issues, Discord, docs
 
 ---
 
@@ -97,52 +88,22 @@ We believe the core platform should be fully accessible. Monetization is about *
 - **Community-driven** — Features come from real needs
 
 ### For FleetOps (The Company)
-- **Cloud revenue** scales with user growth
-- **Enterprise contracts** provide stable income
-- **Marketplace** creates ecosystem and recurring revenue
-- **Goodwill** from open source community drives adoption
-- **Contributions** from users improve the product for everyone
-
-### For The Ecosystem
-- **Transparent pricing** — No hidden costs
-- **Fair model** — Pay for convenience, not access
-- **Sustainable** — Revenue funds continued development
-- **Aligned incentives** — We win when you succeed, not when you're trapped
-
----
-
-## Comparison Table
-
-| Feature | Self-Hosted (FREE) | Cloud ($29-$99/mo) | Enterprise |
-|---------|-------------------|-------------------|------------|
-| All core features | ✅ | ✅ | ✅ |
-| Unlimited users | ✅ | ✅ | ✅ |
-| Unlimited tasks | ✅ | ✅ | ✅ |
-| Unlimited agents | ✅ | ✅ | ✅ |
-| Full API access | ✅ | ✅ | ✅ |
-| All integrations | ✅ | ✅ | ✅ |
-| Self-hosted | ✅ | ❌ | ✅ (optional) |
-| Managed hosting | ❌ | ✅ | ✅ (optional) |
-| Auto updates | ❌ | ✅ | ✅ |
-| Backups | DIY | ✅ | ✅ |
-| SLA | None | 99.9% | 99.99% |
-| Support | Community | Email | Dedicated |
-| Custom features | DIY | ❌ | ✅ |
-| Price | $0 | $29-$99/mo | Custom |
+- Future cloud revenue scales with user growth
+- Enterprise contracts provide stable income
+- Marketplace creates ecosystem and recurring revenue
+- Goodwill from open source community drives adoption
 
 ---
 
 ## Community Promise
 
-> FleetOps will never artificially limit the open source version to push users to paid tiers. The free version is the full version. Paid tiers add convenience, support, and managed services — never features.
-
-This is our commitment. If you can self-host, you get everything. Period.
+> FleetOps will never artificially limit the open source version to push users to paid tiers. The free version is the full version. Any future paid tiers will add convenience, support, and managed services — never features.
 
 ---
 
 ## Open Source Sustainability
 
-Revenue from Cloud, Enterprise, and Marketplace directly funds:
+Any future revenue will directly fund:
 - Full-time core developers
 - Infrastructure and tooling
 - Community events and meetups
@@ -155,4 +116,5 @@ Revenue from Cloud, Enterprise, and Marketplace directly funds:
 ---
 
 *Last updated: 2026-04-22*
+*Current status: Self-hosted only, 100% free*
 *Questions? Contact: juanestebanmosquera@yahoo.com*
