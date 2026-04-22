@@ -16,12 +16,14 @@ import {
   CreditCard,
   ShieldAlert,
   KeyRound,
-  Lightbulb
+  Lightbulb,
+  Puzzle
 } from 'lucide-react'
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { path: '/use-cases', icon: Lightbulb, label: 'Use Cases' },
+  { path: '/integrations', icon: Puzzle, label: 'Integrations' },
   { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { path: '/agents', icon: Bot, label: 'Agents' },
   { path: '/approvals', icon: Shield, label: 'Approvals' },

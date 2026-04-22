@@ -28,6 +28,8 @@ import APIKeys from './pages/APIKeys'
 
 import UseCases from './pages/UseCases'
 
+import Integrations from './pages/Integrations'
+
 function App() {
   return (
     <ThemeProvider>
@@ -53,6 +55,7 @@ function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/api-keys" element={<APIKeys />} />
               <Route path="/use-cases" element={<UseCases />} />
+              <Route path="/integrations" element={<Integrations />} />
             </Route>
           </Routes>
         </WebSocketProvider>
