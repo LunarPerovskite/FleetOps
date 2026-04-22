@@ -22,6 +22,8 @@ import Webhooks from './pages/Webhooks'
 
 import Billing from './pages/Billing'
 
+import Admin from './pages/Admin'
+
 function App() {
   return (
     <ThemeProvider>
@@ -44,6 +46,7 @@ function App() {
               <Route path="/dashboard-builder" element={<DashboardBuilder />} />
               <Route path="/webhooks" element={<Webhooks />} />
               <Route path="/billing" element={<Billing />} />
+              <Route path="/admin" element={<Admin />} />
             </Route>
           </Routes>
         </WebSocketProvider>

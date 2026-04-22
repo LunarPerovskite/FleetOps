@@ -13,7 +13,8 @@ import {
   Plug,
   Zap,
   Link2,
-  CreditCard
+  CreditCard,
+  ShieldAlert
 } from 'lucide-react'
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { path: '/providers', icon: Plug, label: 'Providers' },
   { path: '/billing', icon: CreditCard, label: 'Billing' },
   { path: '/settings', icon: Settings, label: 'Settings' },
+  { path: '/admin', icon: ShieldAlert, label: 'Admin' },
 ]
 
 export default function Sidebar() {
