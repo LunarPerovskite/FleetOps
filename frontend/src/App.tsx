@@ -36,37 +36,41 @@ import LandingPage from './pages/LandingPage'
 
 import Marketplace from './pages/Marketplace'
 
+import { ErrorBoundary } from './components/ErrorBoundary'
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <WebSocketProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route element={<Layout />}>
-              <Route path="/" element={<LandingPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/tasks" element={<Tasks />} />
-              <Route path="/agents" element={<Agents />} />
-              <Route path="/approvals" element={<Approvals />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/customer-service" element={<CustomerService />} />
-              <Route path="/hierarchy" element={<Hierarchy />} />
-              <Route path="/providers" element={<ProviderConfig />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/audit" element={<AuditLog />} />
-              <Route path="/dashboard-builder" element={<DashboardBuilder />} />
-              <Route path="/webhooks" element={<Webhooks />} />
-              <Route path="/billing" element={<Billing />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/api-keys" element={<APIKeys />} />
-              <Route path="/use-cases" element={<UseCases />} />
-              <Route path="/integrations" element={<Integrations />} />
-              <Route path="/workflow-templates" element={<WorkflowTemplates />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-            </Route>
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route element={<Layout />}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/tasks" element={<Tasks />} />
+                <Route path="/agents" element={<Agents />} />
+                <Route path="/approvals" element={<Approvals />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/customer-service" element={<CustomerService />} />
+                <Route path="/hierarchy" element={<Hierarchy />} />
+                <Route path="/providers" element={<ProviderConfig />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/audit" element={<AuditLog />} />
+                <Route path="/dashboard-builder" element={<DashboardBuilder />} />
+                <Route path="/webhooks" element={<Webhooks />} />
+                <Route path="/billing" element={<Billing />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="/api-keys" element={<APIKeys />} />
+                <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/integrations" element={<Integrations />} />
+                <Route path="/workflow-templates" element={<WorkflowTemplates />} />
+                <Route path="/marketplace" element={<Marketplace />} />
+              </Route>
+            </Routes>
+          </ErrorBoundary>
         </WebSocketProvider>
       </AuthProvider>
     </ThemeProvider>
