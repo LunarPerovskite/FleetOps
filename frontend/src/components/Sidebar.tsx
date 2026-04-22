@@ -15,11 +15,13 @@ import {
   Link2,
   CreditCard,
   ShieldAlert,
-  KeyRound
+  KeyRound,
+  Lightbulb
 } from 'lucide-react'
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/use-cases', icon: Lightbulb, label: 'Use Cases' },
   { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { path: '/agents', icon: Bot, label: 'Agents' },
   { path: '/approvals', icon: Shield, label: 'Approvals' },
