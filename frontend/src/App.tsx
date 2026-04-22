@@ -6,6 +6,8 @@ import Agents from './pages/Agents'
 import Approvals from './pages/Approvals'
 import Events from './pages/Events'
 import Hierarchy from './pages/Hierarchy'
+import Login from './pages/Login'
+import ProviderConfig from './pages/ProviderConfig'
 
 function App() {
   return (
@@ -18,6 +20,7 @@ function App() {
         <Route path="/approvals" element={<Approvals />} />
         <Route path="/events" element={<Events />} />
         <Route path="/hierarchy" element={<Hierarchy />} />
+        <Route path="/providers" element={<ProviderConfig />} />
       </Route>
     </Routes>
   )
