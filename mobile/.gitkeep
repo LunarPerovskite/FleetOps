@@ -1,0 +1,22 @@
+# FleetOps Mobile App
+
+Placeholder for React Native mobile application.
+
+## Setup
+
+```bash
+cd mobile
+npx create-expo-app FleetOpsMobile --template blank-typescript
+cd FleetOpsMobile
+npm install @react-navigation/native @react-navigation/stack
+npm install react-native-screens react-native-safe-area-context
+npm install @react-native-async-storage/async-storage
+npm install axios
+```
+
+## Features to Build
+- Dashboard overview
+- Task management
+- Approval workflow
+- Push notifications
+- Biometric auth
