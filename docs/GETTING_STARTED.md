@@ -1,67 +1,64 @@
 # Getting Started with FleetOps
 
-## Quick Start
+## Prerequisites
 
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL 16+ (optional, can use Docker)
-- Redis 7+ (optional, can use Docker)
+- Docker and Docker Compose (recommended)
+- Or: Python 3.11+, Node.js 18+, PostgreSQL 16, Redis 7
 
-### 1. Clone the Repository
+## Quick Start (5 minutes)
+
+### 1. Clone and Setup
 
 ```bash
 git clone https://github.com/LunarPerovskite/FleetOps.git
 cd FleetOps
+cp .env.example .env
 ```
 
 ### 2. Configure Environment
 
-```bash
-cp backend/.env.example backend/.env
-# Edit backend/.env with your settings
-```
+Edit `.env`:
 
-Required environment variables:
 ```env
-DATABASE_URL=postgresql+asyncpg://fleetops:password@localhost:5432/fleetops
-REDIS_URL=redis://localhost:6379/0
-SECRET_KEY=your-secret-key-here
-OPENAI_API_KEY=your-openai-key
+# Required
+DATABASE_URL=postgresql://fleetops:password@localhost:5432/fleetops
+JWT_SECRET=your-super-secret-key-min-32-chars-long
+REDIS_URL=redis://localhost:6379
+
+# Optional
+FRONTEND_URL=http://localhost:3000
+API_URL=http://localhost:8000
 ```
 
-### 3. Start with Docker Compose
+### 3. Start with Docker
 
 ```bash
+# Development
 docker-compose up -d
+
+# Or production
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-This starts:
-- PostgreSQL database
-- Redis cache
-- Backend API (http://localhost:8000)
-- Frontend (http://localhost:3000)
+### 4. Visit
 
-### 4. Create First Admin User
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
 
-```bash
-cd backend
-python -m app.scripts.create_admin \
-  --email admin@fleetops.io \
-  --password changeme \
-  --name "Admin User"
-```
+### 5. Onboard
 
-### 5. Access FleetOps
+1. Visit `/onboarding`
+2. Create your organization
+3. Configure providers at `/providers`
+4. Invite team members
+5. Start creating tasks!
 
-- **Web App**: http://localhost:3000
-- **API Docs**: http://localhost:8000/docs
-- **Health Check**: http://localhost:8000/health
+---
 
 ## Development Setup
 
-### Backend Only
+### Backend
 
 ```bash
 cd backend
@@ -76,7 +73,7 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend Only
+### Frontend
 
 ```bash
 cd frontend
@@ -84,88 +81,186 @@ npm install
 npm run dev
 ```
 
-## Connect Your First Agent
-
-### 1. Get API Key
+### Database Setup
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/auth/login \
-  -d "email=admin@fleetops.io" \
-  -d "password=changeme"
+# Create database
+createdb fleetops
+
+# Run seed data (optional)
+cd backend
+python scripts/seed_demo.py
 ```
 
-### 2. Create Agent
+---
+
+## Configuration Guide
+
+### Authentication Providers
+
+#### Clerk (Recommended - Easiest)
+
+1. Sign up at https://clerk.dev
+2. Create an application
+3. Copy API keys to `.env`:
+```env
+CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+```
+
+#### Auth0
+
+1. Sign up at https://auth0.com
+2. Create an API application
+3. Configure callback URLs
+4. Copy keys to `.env`
+
+#### Self-Hosted (Advanced)
+
+Use built-in JWT auth with PBKDF2 hashing. No external provider needed.
+
+### Database Providers
+
+#### Supabase (Recommended - Free Tier)
+
+1. Create project at https://supabase.com
+2. Copy connection string to `DATABASE_URL`
+
+#### Neon (Serverless PostgreSQL)
+
+1. Create project at https://neon.tech
+2. Copy connection string
+
+#### Local PostgreSQL
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/agents/ \
+# Install PostgreSQL
+# Ubuntu/Debian
+sudo apt-get install postgresql postgresql-contrib
+
+# macOS
+brew install postgresql
+
+# Start service
+sudo service postgresql start  # Linux
+brew services start postgresql  # macOS
+
+# Create database
+sudo -u postgres createdb fleetops
+sudo -u postgres createuser -P fleetops
+```
+
+---
+
+## Common Tasks
+
+### Create First Agent
+
+```bash
+# Via API
+curl -X POST http://localhost:8000/api/v1/agents \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "My First Agent",
-    "provider": "openai",
-    "model": "gpt-4.1",
-    "capabilities": ["coding", "analysis"],
-    "level": "junior"
+    "name": "Claude Code",
+    "provider": "anthropic",
+    "model": "claude-3-sonnet",
+    "capabilities": ["coding", "review"],
+    "level": "senior"
   }'
 ```
 
-### 3. Create Task
+### Create First Task
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/tasks/ \
+curl -X POST http://localhost:8000/api/v1/tasks \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Analyze customer feedback",
-    "description": "Process Q3 customer feedback data",
-    "agent_id": "AGENT_ID_FROM_STEP_2",
+    "title": "Review Pull Request #123",
+    "description": "Check code quality and test coverage",
+    "agent_id": "AGENT_ID",
     "risk_level": "medium"
   }'
 ```
 
-### 4. Approve Task
+### Connect Slack
 
-```bash
-curl -X POST http://localhost:8000/api/v1/tasks/TASK_ID/approve \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "decision": "approve",
-    "comments": "Proceed with analysis"
-  }'
+1. Create app at https://api.slack.com/apps
+2. Add Bot Token Scopes: `chat:write`, `chat:write.public`
+3. Install to workspace
+4. Copy Bot User OAuth Token to `.env`:
+```env
+SLACK_BOT_TOKEN=xoxb-...
 ```
 
-## What's Next?
+### Connect Discord
 
-- [Connect Claude Code](docs/connectors/claude.md)
-- [Set up WhatsApp](docs/connectors/whatsapp.md)
-- [Configure Human Hierarchy](docs/hierarchy.md)
-- [View Analytics](docs/analytics.md)
+1. Create app at https://discord.com/developers/applications
+2. Add Bot, enable Message Content Intent
+3. Copy token to `.env`:
+```env
+DISCORD_BOT_TOKEN=...
+```
+
+---
+
+## Next Steps
+
+- Read [API Reference](API_REFERENCE.md)
+- Check [Architecture Overview](ARCHITECTURE.md)
+- See [Contributing Guidelines](../CONTRIBUTING.md)
+- Join [Discord](https://discord.gg/fleetops) (coming soon)
+
+---
 
 ## Troubleshooting
 
 ### Database Connection Issues
+
 ```bash
-# Reset database
-docker-compose down -v
-docker-compose up -d
+# Check PostgreSQL is running
+sudo service postgresql status
+
+# Test connection
+psql -U fleetops -d fleetops -c "SELECT 1"
+
+# Check logs
+docker-compose logs postgres
+```
+
+### Redis Connection Issues
+
+```bash
+# Check Redis is running
+redis-cli ping
+# Should return: PONG
+
+# Check logs
+docker-compose logs redis
 ```
 
 ### Port Already in Use
+
 ```bash
-# Check what's using port 8000
+# Find what's using port 8000
 lsof -i :8000
-# Kill process or change port in .env
+
+# Kill process
+kill -9 PID
+
+# Or change port in .env
+API_PORT=8001
 ```
 
-### Redis Not Available
-```bash
-# Start Redis only
-docker-compose up -d redis
-```
+### CORS Errors
+
+Make sure `FRONTEND_URL` and `API_URL` in `.env` match your actual URLs.
+
+---
 
 ## Support
 
-- GitHub Issues: https://github.com/LunarPerovskite/FleetOps/issues
-- Documentation: https://docs.fleetops.io
-- Community: https://discord.gg/fleetops
+- 📧 Email: juanestebanmosquera@yahoo.com
+- 💬 GitHub Issues: https://github.com/LunarPerovskite/FleetOps/issues
+- 📖 Documentation: https://docs.fleetops.io (coming soon)
