@@ -548,3 +548,159 @@ client.on_task_event(lambda event: client.report(event))
 
 *Document version: 1.0 — April 2026*
 *Author: AgentHQ Platform Design Team*
+---
+
+## COMPETITIVE ANALYSIS
+
+### AgentOps
+| Feature | AgentOps | FleetOps |
+|---------|----------|----------|
+| **Type** | Observability | Governance + Orchestration |
+| **Human-in-the-loop** | ❌ Manual only | ✅ First-class, any stage |
+| **Human hierarchy** | ❌ None | ✅ 6 levels |
+| **Agent hierarchy** | ❌ None | ✅ 5 levels + sub-agents |
+| **Sub-agents** | ❌ None | ✅ Up to 5 per agent |
+| **Multi-tenant** | ❌ Single org | ✅ Orgs + Teams + Projects |
+| **Customer service** | ❌ None | ✅ WhatsApp, Telegram, Web, Voice |
+| **Cross-machine** | ❌ Local only | ✅ Distributed WebSocket |
+| **Evidence store** | ⚠️ Logs | ✅ Cryptographically signed |
+| **LLM cost tracking** | ✅ Yes | ✅ Yes |
+| **Self-hosted** | ✅ Enterprise | ✅ All tiers |
+| **Pricing** | $40/mo Pro | $29/mo Pro |
+
+### LangSmith / Langfuse
+| Feature | LangSmith | FleetOps |
+|---------|-----------|----------|
+| **Type** | Tracing | Governance |
+| **Human approval** | ❌ None | ✅ Full workflow |
+| **Role-based access** | ❌ None | ✅ 6 human levels |
+| **Customer channels** | ❌ None | ✅ Multi-channel |
+| **Self-hosted** | ✅ Yes | ✅ Yes |
+
+### Prefactor
+| Feature | Prefactor | FleetOps |
+|---------|-----------|----------|
+| **Type** | Single-agent | Fleet-wide |
+| **Multi-agent** | ❌ No | ✅ Yes |
+| **Sub-agents** | ❌ No | ✅ Yes |
+| **Human hierarchy** | ⚠️ Basic | ✅ Full |
+
+### Copilot / Claude Code
+| Feature | Copilot | FleetOps |
+|---------|---------|----------|
+| **Type** | Coding assistant | Control plane |
+| **Governance** | ❌ None | ✅ Full |
+| **Cross-agent** | ❌ Single | ✅ Multi-agent fleet |
+| **Evidence** | ❌ None | ✅ Immutable |
+
+### Key Differentiators
+1. **Evidence-first**: Cryptographically signed logs for compliance
+2. **Human hierarchy as first-class**: Not just approvers, but directors, operators, auditors
+3. **Agent hierarchy with sub-agents**: Lead → Senior → Junior → Specialist → Monitor
+4. **Multi-channel customer service**: WhatsApp, Telegram, Web, Voice, Email
+5. **Cross-machine distributed**: WebSocket hub, agents anywhere
+6. **Multi-tenant**: Orgs, Teams, Projects, Cost centers
+7. **Universal connector**: One base class for all agent types
+8. **Free tier**: 3 agents, 1 team, 1GB logs
+
+---
+
+## COMPLETE CONNECTOR ECOSYSTEM
+
+### Coding Agents
+| Connector | Provider | Mode | Type | Status |
+|-----------|----------|------|------|--------|
+| Claude Code | Anthropic | CLI | Coding | ✅ Ready |
+| Codex | OpenAI | CLI/Cloud | Coding | ✅ Ready |
+| Copilot | GitHub | CLI/Cloud | Coding | ✅ Ready |
+| Kilo Code | Kilo | CLI | Coding | 🔄 Planned |
+| OpenCode | OpenCode | CLI | Coding | 🔄 Planned |
+
+### Customer Service Agents
+| Connector | Channel | Mode | Type | Status |
+|-----------|---------|------|------|--------|
+| WhatsApp Service | WhatsApp | Cloud | Customer Service | ✅ Ready |
+| Telegram Service | Telegram | Cloud | Customer Service | ✅ Ready |
+| Web Chat | Web | Cloud | Chat | ✅ Ready |
+| Voice Agent | Phone | Cloud | Voice | ✅ Ready |
+| Email Support | Email | Cloud | Email | 🔄 Planned |
+| Discord Support | Discord | Cloud | Community | 🔄 Planned |
+
+### Sales Agents
+| Connector | Channel | Mode | Type | Status |
+|-----------|---------|------|------|--------|
+| WhatsApp Sales | WhatsApp | Cloud | Sales | 🔄 Planned |
+| Telegram Sales | Telegram | Cloud | Sales | 🔄 Planned |
+| Web Sales | Web | Cloud | Sales | 🔄 Planned |
+
+### General AI Agents
+| Connector | Provider | Mode | Type | Status |
+|-----------|----------|------|------|--------|
+| Gemini | Google | Cloud | General | 🔄 Planned |
+| Grok | xAI | Cloud | General | 🔄 Planned |
+| Ollama | Local | CLI | General | 🔄 Planned |
+| AutoGen | Microsoft | CLI | Multi-agent | 🔄 Planned |
+| CrewAI | CrewAI | CLI | Multi-agent | 🔄 Planned |
+| LangChain | LangChain | CLI | Framework | 🔄 Planned |
+
+---
+
+## WHAT MAKES FLEETOPS DIFFERENT
+
+### 1. Universal Connector Architecture
+- One base class for ALL agent types (coding, customer service, sales, voice)
+- Supports CLI and Cloud modes
+- Sub-agent hierarchy: any agent can create up to 5 sub-agents
+- Cross-machine: agents connect from anywhere via WebSocket
+
+### 2. Human-First Governance
+- 6-level human hierarchy: Executive → Director → Senior Operator → Operator → Reviewer → Viewer
+- HiTL at ANY stage, not just approval gates
+- Role-based SLA: critical tasks get 5-min response, low-risk auto-approved
+- Full audit trail: who approved what, when, with comments
+
+### 3. Multi-Tenant Organization Model
+- Organizations with multiple teams
+- Teams with multiple projects
+- Cost attribution: org, team, user, agent, task, cost center
+- Agent sharing: team-owned or personal
+
+### 4. Evidence-First Compliance
+- Cryptographically signed event log
+- Immutable (no deletes, no edits)
+- Export: JSON, CSV, PDF compliance reports
+- Hot storage (90 days) + cold storage (compressed)
+
+### 5. Cross-Provider Cost Control
+- Track costs across Anthropic, OpenAI, Ollama, Gemini, Grok
+- Per-agent, per-task, per-team cost allocation
+- Budget alerts and spending limits
+- Model comparison: cost per task, quality per dollar
+
+### 6. Customer Service Integration
+- WhatsApp, Telegram, Web chat, Voice, Email, Discord
+- Auto-response with escalation keywords
+- Human handoff with SLA tracking
+- Conversation threading across channels
+
+---
+
+## NEXT STEPS
+
+1. ✅ Backend API (FastAPI, SQLAlchemy, Auth)
+2. ✅ Frontend (React, Tailwind, Dashboard)
+3. ✅ SDK (Python)
+4. ✅ Connectors (Claude, Codex, Copilot, WhatsApp, Telegram, Web, Voice)
+5. 🔄 Tests (pytest, 80%+ coverage)
+6. 🔄 Kubernetes deployment
+7. 🔄 Email/Discord connectors
+8. 🔄 Sales agent templates
+9. 🔄 Voice-to-text integration
+10. 🔄 Real-time dashboard data
+11. 🔄 Billing system
+12. 🔄 Self-hosted documentation
+
+---
+
+*Document version: 1.1 — April 2026*
+*Author: FleetOps Platform Team*
