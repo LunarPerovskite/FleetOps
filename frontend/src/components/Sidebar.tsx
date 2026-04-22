@@ -12,7 +12,8 @@ import {
   LayoutTemplate,
   Plug,
   Zap,
-  Link2
+  Link2,
+  CreditCard
 } from 'lucide-react'
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { path: '/dashboard-builder', icon: LayoutTemplate, label: 'Dashboard Builder' },
   { path: '/webhooks', icon: Link2, label: 'Webhooks' },
   { path: '/providers', icon: Plug, label: 'Providers' },
+  { path: '/billing', icon: CreditCard, label: 'Billing' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ]
 

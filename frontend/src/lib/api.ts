@@ -173,4 +173,11 @@ export const webhooksAPI = {
   test: (id: string) => api.post(`/webhooks/${id}/test`),
 };
 
+// Billing
+export const billingAPI = {
+  usage: () => api.get('/billing/usage'),
+  history: () => api.get('/billing/history'),
+  tiers: () => api.get('/billing/tiers'),
+};
+
 export default api;

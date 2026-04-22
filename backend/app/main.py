@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.core.database import init_db, get_db, async_engine
-from app.api.routes import auth, organizations, teams, users, agents, tasks, approvals, events, dashboard, customer_service, hierarchy, providers, audit, dashboard_builder as db_builder
+from app.api.routes import auth, organizations, teams, users, agents, tasks, approvals, events, dashboard, customer_service, hierarchy, providers, audit, dashboard_builder as db_builder, billing, webhooks
 
 security = HTTPBearer(auto_error=False)
 
@@ -47,6 +47,8 @@ app.include_router(hierarchy.router, prefix="/api/v1/hierarchy", tags=["hierarch
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
 app.include_router(audit.router, prefix="/api/v1", tags=["audit"])
 app.include_router(db_builder.router, prefix="/api/v1", tags=["dashboard-builder"])
+app.include_router(billing.router, prefix="/api/v1", tags=["billing"])
+app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 
 @app.get("/health")
 async def health_check():

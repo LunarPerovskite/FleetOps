@@ -20,6 +20,8 @@ import CustomerService from './pages/CustomerService'
 
 import Webhooks from './pages/Webhooks'
 
+import Billing from './pages/Billing'
+
 function App() {
   return (
     <ThemeProvider>
@@ -41,6 +43,7 @@ function App() {
               <Route path="/audit" element={<AuditLog />} />
               <Route path="/dashboard-builder" element={<DashboardBuilder />} />
               <Route path="/webhooks" element={<Webhooks />} />
+              <Route path="/billing" element={<Billing />} />
             </Route>
           </Routes>
         </WebSocketProvider>
