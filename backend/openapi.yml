@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: FleetOps API
+  version: 0.1.0
+  description: |
+    The Operating System for Governed Human-Agent Work.
+    
+    FleetOps provides:
+    - Multi-tenant organizations with teams and projects
+    - Human hierarchy (Executive → Director → Senior Operator → Operator → Reviewer → Viewer)
+    - Agent hierarchy (Lead → Senior → Junior → Specialist → Monitor)
+    - Sub-agent support (up to 5 per agent)
+    - Human-in-the-loop at any workflow stage
+    - Immutable evidence store with cryptographic signatures
+    - Cross-provider LLM cost tracking
+    - Real-time WebSocket communication
+    - Multi-channel customer service (WhatsApp, Telegram, Web, Voice, Email, Discord)
+    
+servers:
+  - url: https://api.fleetops.io/api/v1
+    description: Production
+  - url: http://localhost:8000/api/v1
+    description: Local Development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: "healthy"}
+                  version: {type: string, example: "0.1.0"}
+
+  /auth/register:
+    post:
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                password: {type: string, minLength: 8}
+                name: {type: string}
+      responses:
+        '200':
+          description: User registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id: {type: string}
+                  email: {type: string}
+
+  /auth/login:
+    post:
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string}
+                password: {type: string}
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: {type: string}
+                  token_type: {type: string, example: "bearer"}
+                  user_id: {type: string}
+
+  /tasks/:
+    get:
+      summary: List tasks
+      parameters:
+        - name: status
+          in: query
+          schema: {type: string}
+        - name: agent_id
+          in: query
+          schema: {type: string}
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    
+    post:
+      summary: Create task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string}
+                description: {type: string}
+                agent_id: {type: string}
+                risk_level: {type: string, enum: [low, medium, high, critical]}
+      responses:
+        '200':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  /tasks/{task_id}/approve:
+    post:
+      summary: Approve task stage
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision: {type: string, enum: [approve, reject, request_changes, escalate]}
+                comments: {type: string}
+      responses:
+        '200':
+          description: Approval recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string}
+                  task_id: {type: string}
+                  new_stage: {type: string}
+
+  /agents/:
+    get:
+      summary: List agents
+      responses:
+        '200':
+          description: List of agents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Agent'
+    
+    post:
+      summary: Create agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+                provider: {type: string}
+                model: {type: string}
+                capabilities: {type: array, items: {type: string}}
+                level: {type: string, enum: [junior, senior, lead, specialist, monitor]}
+      responses:
+        '200':
+          description: Agent created
+
+  /events/:
+    get:
+      summary: List events
+      parameters:
+        - name: task_id
+          in: query
+          schema: {type: string}
+        - name: event_type
+          in: query
+          schema: {type: string}
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+  /approvals/:
+    get:
+      summary: List approvals
+      responses:
+        '200':
+          description: List of approvals
+
+  /approvals/pending:
+    get:
+      summary: Get pending approvals
+      responses:
+        '200':
+          description: Pending approvals
+
+  /dashboard/overview:
+    get:
+      summary: Get dashboard overview
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_agents: {type: integer}
+                  tasks_in_progress: {type: integer}
+                  pending_approvals: {type: integer}
+                  cost_today: {type: number}
+
+  /ws/agent/{agent_id}:
+    get:
+      summary: WebSocket for agents
+      description: Real-time communication for agents
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema: {type: string}
+
+  /ws/human/{user_id}:
+    get:
+      summary: WebSocket for humans
+      description: Real-time communication for humans
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema: {type: string}
+
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        id: {type: string}
+        title: {type: string}
+        description: {type: string}
+        status: {type: string}
+        stage: {type: string}
+        risk_level: {type: string}
+        agent_id: {type: string}
+        created_at: {type: string, format: date-time}
+
+    Agent:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
+        provider: {type: string}
+        model: {type: string}
+        level: {type: string}
+        capabilities: {type: array, items: {type: string}}
+        status: {type: string}
+        cost_to_date: {type: number}
+        created_at: {type: string, format: date-time}
+
+    Event:
+      type: object
+      properties:
+        id: {type: string}
+        event_type: {type: string}
+        task_id: {type: string}
+        agent_id: {type: string}
+        data: {type: object}
+        timestamp: {type: string, format: date-time}
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - BearerAuth: []

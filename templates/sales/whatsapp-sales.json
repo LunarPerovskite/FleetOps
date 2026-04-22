@@ -1,0 +1,43 @@
+{
+  "name": "WhatsApp Sales Agent",
+  "description": "Sales agent for WhatsApp with lead qualification and human handoff",
+  "provider": "whatsapp",
+  "model": "gpt-4.1",
+  "mode": "cloud",
+  "agent_type": "sales",
+  "level": "senior",
+  "capabilities": ["sales", "qualify", "escalate", "schedule", "demo"],
+  "conversation_flow": {
+    "greeting": "Hello! Thanks for reaching out. I'm here to help you find the perfect solution.",
+    "qualification_questions": [
+      "What industry are you in?",
+      "How many team members do you have?",
+      "What challenges are you facing?",
+      "What's your timeline?"
+    ],
+    "escalation_triggers": [
+      "enterprise", "custom pricing", "demo", "talk to sales",
+      "account manager", "proposal", "contract", "negotiate"
+    ],
+    "closing_messages": [
+      "Based on your needs, I recommend our Pro plan.",
+      "Would you like me to schedule a demo with our team?",
+      "I can connect you with a specialist right away."
+    ]
+  },
+  "handoff_rules": {
+    "auto_qualify": true,
+    "score_threshold": 70,
+    "sla_minutes": 30,
+    "required_role": "operator"
+  },
+  "pricing": {
+    "tiers": ["free", "pro", "business", "enterprise"],
+    "features": {
+      "free": ["3 agents", "1 team"],
+      "pro": ["unlimited agents", "priority support"],
+      "business": ["SSO", "analytics"],
+      "enterprise": ["self-hosted", "SLA"]
+    }
+  }
+}
