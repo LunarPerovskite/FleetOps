@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: fleetops-backend
+    runtime: python
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fleetops-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: fleetops-redis
+          property: connectionString
+    healthCheckPath: /health
+
+  - type: web
+    name: fleetops-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://fleetops-backend.onrender.com/api/v1
+
+databases:
+  - name: fleetops-db
+    databaseName: fleetops
+    user: fleetops
+
+  - name: fleetops-redis
+    type: redis
+    ipAllowList: []
