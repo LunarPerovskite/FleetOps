@@ -32,6 +32,10 @@ import Integrations from './pages/Integrations'
 
 import WorkflowTemplates from './pages/WorkflowTemplates'
 
+import LandingPage from './pages/LandingPage'
+
+import Marketplace from './pages/Marketplace'
+
 function App() {
   return (
     <ThemeProvider>
@@ -41,7 +45,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<Layout />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<LandingPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/approvals" element={<Approvals />} />
@@ -59,6 +64,7 @@ function App() {
               <Route path="/use-cases" element={<UseCases />} />
               <Route path="/integrations" element={<Integrations />} />
               <Route path="/workflow-templates" element={<WorkflowTemplates />} />
+              <Route path="/marketplace" element={<Marketplace />} />
             </Route>
           </Routes>
         </WebSocketProvider>
