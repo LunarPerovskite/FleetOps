@@ -1,0 +1,298 @@
+#!/usr/bin/env python3
+"""FleetOps CLI
+
+Management tool for FleetOps operations.
+Usage: fleetops [command] [options]
+
+Commands:
+    status          Show system status
+    agent           Manage agents
+    task            Manage tasks
+    cost            Show cost reports
+    provider        Manage LLM providers
+    approval        Manage approvals
+    db              Database operations
+    config          Show configuration
+"""
+
+import sys
+import os
+import json
+import argparse
+from datetime import datetime, timedelta
+from typing import Optional
+
+# Add backend to path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
+
+from app.core.config import settings
+
+
+def print_header(text: str):
+    """Print formatted header"""
+    print(f"\n{'='*60}")
+    print(f"  {text}")
+    print(f"{'='*60}\n")
+
+
+def print_table(headers: list, rows: list):
+    """Print simple table"""
+    # Calculate column widths
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(str(cell)))
+    
+    # Print header
+    header_line = " | ".join(h.ljust(w) for h, w in zip(headers, widths))
+    print(header_line)
+    print("-" * len(header_line))
+    
+    # Print rows
+    for row in rows:
+        print(" | ".join(str(c).ljust(w) for c, w in zip(row, widths)))
+
+
+def cmd_status(args):
+    """Show system status"""
+    print_header("FleetOps System Status")
+    
+    print(f"App Name:     {settings.APP_NAME}")
+    print(f"Version:      0.1.0")
+    print(f"Debug Mode:   {'YES' if settings.DEBUG else 'NO'}")
+    print(f"Database:     {settings.DATABASE_URL.split('@')[-1]}")
+    print(f"Redis:        {settings.REDIS_URL}")
+    print(f"Log Level:    {settings.LOG_LEVEL}")
+    
+    # Check provider configs
+    print_header("Configured Providers")
+    providers = []
+    if settings.OPENAI_API_KEY:
+        providers.append("OpenAI")
+    if settings.ANTHROPIC_API_KEY:
+        providers.append("Anthropic")
+    if settings.OPENROUTER_API_KEY:
+        providers.append("OpenRouter")
+    if settings.GROQ_API_KEY:
+        providers.append("Groq")
+    if settings.OLLAMA_URL:
+        providers.append("Ollama")
+    
+    if providers:
+        for p in providers:
+            print(f"  ✓ {p}")
+    else:
+        print("  None configured")
+
+
+def cmd_agent(args):
+    """Manage agents"""
+    print_header("Agent Management")
+    
+    if args.subcommand == "list":
+        print("Active agents would be listed here")
+        print("(Requires database connection)")
+    elif args.subcommand == "create":
+        print(f"Creating agent: {args.name}")
+        print("(Requires database connection)")
+    elif args.subcommand == "status":
+        print(f"Status for agent: {args.agent_id}")
+        print("(Requires database connection)")
+
+
+def cmd_task(args):
+    """Manage tasks"""
+    print_header("Task Management")
+    
+    if args.subcommand == "list":
+        print("Tasks would be listed here")
+    elif args.subcommand == "create":
+        print(f"Creating task: {args.title}")
+    elif args.subcommand == "status":
+        print(f"Status for task: {args.task_id}")
+
+
+def cmd_cost(args):
+    """Show cost reports"""
+    print_header("Cost Report")
+    
+    if args.period == "today":
+        print("Today's costs:")
+        print("  (Requires database connection)")
+    elif args.period == "week":
+        print("This week's costs:")
+        print("  (Requires database connection)")
+    elif args.period == "month":
+        print("This month's costs:")
+        print("  (Requires database connection)")
+    else:
+        print(f"Costs for period: {args.period}")
+
+
+def cmd_provider(args):
+    """Manage LLM providers"""
+    print_header("LLM Provider Management")
+    
+    if args.subcommand == "list":
+        print("Available providers:")
+        print("  openai      - OpenAI GPT-4, GPT-3.5")
+        print("  anthropic   - Claude 3 Opus, Sonnet, Haiku")
+        print("  gemini      - Google Gemini")
+        print("  azure       - Azure OpenAI")
+        print("  openrouter  - OpenRouter (100+ models)")
+        print("  groq        - Groq (fast inference)")
+        print("  ollama      - Local models via Ollama")
+    elif args.subcommand == "status":
+        print(f"Status for provider: {args.provider}")
+
+
+def cmd_approval(args):
+    """Manage approvals"""
+    print_header("Approval Management")
+    
+    if args.subcommand == "list":
+        print("Pending approvals:")
+        print("  (Requires database connection)")
+    elif args.subcommand == "approve":
+        print(f"Approving: {args.approval_id}")
+    elif args.subcommand == "reject":
+        print(f"Rejecting: {args.approval_id}")
+
+
+def cmd_db(args):
+    """Database operations"""
+    print_header("Database Operations")
+    
+    if args.subcommand == "migrate":
+        print("Running migrations...")
+        os.chdir(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+        os.system("alembic upgrade head")
+    elif args.subcommand == "status":
+        print("Database status:")
+        print(f"  URL: {settings.DATABASE_URL}")
+    elif args.subcommand == "seed":
+        print("Seeding database...")
+        print("(Requires seed script)")
+
+
+def cmd_config(args):
+    """Show configuration"""
+    print_header("FleetOps Configuration")
+    
+    config = {
+        "APP_NAME": settings.APP_NAME,
+        "DEBUG": settings.DEBUG,
+        "LOG_LEVEL": settings.LOG_LEVEL,
+        "DATABASE_URL": settings.DATABASE_URL,
+        "REDIS_URL": settings.REDIS_URL,
+        "SECRET_KEY": "***REDACTED***" if settings.SECRET_KEY else "NOT SET",
+        "ACCESS_TOKEN_EXPIRE_MINUTES": settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        "AGENT_AUTO_APPROVE_LOW_RISK": settings.AGENT_AUTO_APPROVE_LOW_RISK,
+    }
+    
+    for key, value in config.items():
+        print(f"  {key}: {value}")
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="FleetOps CLI - Manage your agent fleet",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    fleetops status                    Show system status
+    fleetops agent list                List active agents
+    fleetops task create "My Task"     Create a new task
+    fleetops cost --today              Show today's costs
+    fleetops provider list             List available LLM providers
+    fleetops db migrate                Run database migrations
+        """
+    )
+    
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
+    
+    # Status command
+    status_parser = subparsers.add_parser("status", help="Show system status")
+    
+    # Agent command
+    agent_parser = subparsers.add_parser("agent", help="Manage agents")
+    agent_sub = agent_parser.add_subparsers(dest="subcommand")
+    agent_sub.add_parser("list", help="List agents")
+    agent_create = agent_sub.add_parser("create", help="Create agent")
+    agent_create.add_argument("name", help="Agent name")
+    agent_status = agent_sub.add_parser("status", help="Agent status")
+    agent_status.add_argument("agent_id", help="Agent ID")
+    
+    # Task command
+    task_parser = subparsers.add_parser("task", help="Manage tasks")
+    task_sub = task_parser.add_subparsers(dest="subcommand")
+    task_sub.add_parser("list", help="List tasks")
+    task_create = task_sub.add_parser("create", help="Create task")
+    task_create.add_argument("title", help="Task title")
+    task_status = task_sub.add_parser("status", help="Task status")
+    task_status.add_argument("task_id", help="Task ID")
+    
+    # Cost command
+    cost_parser = subparsers.add_parser("cost", help="Show cost reports")
+    cost_parser.add_argument("--today", action="store_const", const="today", dest="period",
+                            help="Show today's costs")
+    cost_parser.add_argument("--week", action="store_const", const="week", dest="period",
+                            help="Show this week's costs")
+    cost_parser.add_argument("--month", action="store_const", const="month", dest="period",
+                            help="Show this month's costs")
+    cost_parser.set_defaults(period="today")
+    
+    # Provider command
+    provider_parser = subparsers.add_parser("provider", help="Manage LLM providers")
+    provider_sub = provider_parser.add_subparsers(dest="subcommand")
+    provider_sub.add_parser("list", help="List providers")
+    provider_status = provider_sub.add_parser("status", help="Provider status")
+    provider_status.add_argument("provider", help="Provider name")
+    
+    # Approval command
+    approval_parser = subparsers.add_parser("approval", help="Manage approvals")
+    approval_sub = approval_parser.add_subparsers(dest="subcommand")
+    approval_sub.add_parser("list", help="List pending approvals")
+    approval_approve = approval_sub.add_parser("approve", help="Approve request")
+    approval_approve.add_argument("approval_id", help="Approval ID")
+    approval_reject = approval_sub.add_parser("reject", help="Reject request")
+    approval_reject.add_argument("approval_id", help="Approval ID")
+    
+    # DB command
+    db_parser = subparsers.add_parser("db", help="Database operations")
+    db_sub = db_parser.add_subparsers(dest="subcommand")
+    db_sub.add_parser("migrate", help="Run migrations")
+    db_sub.add_parser("status", help="Database status")
+    db_sub.add_parser("seed", help="Seed database")
+    
+    # Config command
+    config_parser = subparsers.add_parser("config", help="Show configuration")
+    
+    args = parser.parse_args()
+    
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+    
+    # Route to command handler
+    commands = {
+        "status": cmd_status,
+        "agent": cmd_agent,
+        "task": cmd_task,
+        "cost": cmd_cost,
+        "provider": cmd_provider,
+        "approval": cmd_approval,
+        "db": cmd_db,
+        "config": cmd_config,
+    }
+    
+    handler = commands.get(args.command)
+    if handler:
+        handler(args)
+    else:
+        print(f"Unknown command: {args.command}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
