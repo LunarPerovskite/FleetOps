@@ -32,8 +32,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         
         # Remove server fingerprinting
-        response.headers.pop("Server", None)
-        response.headers.pop("X-Powered-By", None)
+        if "Server" in response.headers:
+            del response.headers["Server"]
+        if "X-Powered-By" in response.headers:
+            del response.headers["X-Powered-By"]
         
         return response
 
@@ -137,8 +139,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         
         # Remove fingerprinting
-        response.headers.pop("Server", None)
-        response.headers.pop("X-Powered-By", None)
+        if "Server" in response.headers:
+            del response.headers["Server"]
+        if "X-Powered-By" in response.headers:
+            del response.headers["X-Powered-By"]
         
         # 4. Audit log (skip health checks)
         if request.url.path not in AuditLogMiddleware.SKIP_PATHS:
