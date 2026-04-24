@@ -3,12 +3,13 @@
 System status, readiness, and liveness probes
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 from datetime import datetime
 
 from app.core.database import get_db
 from app.core.auth import verify_token
+from app.core.metrics import get_metrics_text
 
 router = APIRouter()
 
@@ -22,6 +23,15 @@ def health_check():
         "service": "fleetops-api",
         "version": "0.1.0"
     }
+
+
+@router.get("/metrics")
+def metrics_endpoint():
+    """Prometheus-compatible metrics endpoint"""
+    return Response(
+        content=get_metrics_text(),
+        media_type="text/plain; version=0.0.4; charset=utf-8"
+    )
 
 
 @router.get("/ready")
