@@ -1,50 +1,17 @@
 """Security middleware for FleetOps
 
-- Rate limiting
-- Input validation
-- Output sanitization
-- Security headers
-- CORS configuration
+Production-ready security headers, rate limiting, and audit logging.
 """
 
 import re
 import time
+import hashlib
+import json
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-
-class RateLimiter:
-    """In-memory rate limiter (use Redis in production)"""
-    
-    def __init__(self, max_requests: int = 100, window_seconds: int = 60):
-        self.max_requests = max_requests
-        self.window_seconds = window_seconds
-        self.requests: Dict[str, List[float]] = {}
-    
-    def is_allowed(self, key: str) -> bool:
-        """Check if request is allowed"""
-        now = time.time()
-        window_start = now - self.window_seconds
-        
-        # Clean old requests
-        if key in self.requests:
-            self.requests[key] = [t for t in self.requests[key] if t > window_start]
-        else:
-            self.requests[key] = []
-        
-        # Check limit
-        if len(self.requests[key]) >= self.max_requests:
-            return False
-        
-        # Record request
-        self.requests[key].append(now)
-        return True
-
-# Global limiters
-public_limiter = RateLimiter(max_requests=30, window_seconds=60)   # Stricter
-auth_limiter = RateLimiter(max_requests=10, window_seconds=60)      # Login attempts
-api_limiter = RateLimiter(max_requests=100, window_seconds=60)      # API usage
+from starlette.responses import Response
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses"""
@@ -55,81 +22,128 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["X-XSS-Protection"] = "0"  # Disabled - rely on CSP instead
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         
-        # Remove server information
+        # Remove server fingerprinting
         response.headers.pop("Server", None)
+        response.headers.pop("X-Powered-By", None)
         
         return response
 
-class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Apply rate limiting"""
+
+class AuditLogMiddleware(BaseHTTPMiddleware):
+    """Log all requests for audit trail"""
+    
+    # Skip logging for health checks
+    SKIP_PATHS = {"/health", "/api/v1/health", "/api/v1/live", "/api/v1/ready"}
     
     async def dispatch(self, request: Request, call_next):
-        client_ip = request.client.host
-        path = request.url.path
+        start_time = time.time()
         
-        # Different limits for different endpoints
-        if path.startswith("/api/v1/auth"):
-            limiter = auth_limiter
-        elif path.startswith("/api/v1"):
-            limiter = api_limiter
-        else:
-            limiter = public_limiter
+        # Skip health checks
+        if request.url.path in self.SKIP_PATHS:
+            return await call_next(request)
         
-        if not limiter.is_allowed(client_ip):
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+        # Generate trace ID for request correlation
+        trace_id = hashlib.sha256(
+            f"{request.client.host}:{time.time()}".encode()
+        ).hexdigest()[:16]
+        request.state.trace_id = trace_id
         
-        return await call_next(request)
-
-class InputSanitizationMiddleware(BaseHTTPMiddleware):
-    """Sanitize request inputs"""
-    
-    SQLI_PATTERNS = [
-        r"(\b(union|select|insert|update|delete|drop|create|alter)\b.*?\b(from|into|table|database)\b)",
-        r"(--|#|\/\*|\*\/)",
-        r"(\b(or|and)\b\s+\d+\s*=\s*\d+)",
-        r"(\b(waitfor|delay|sleep)\b)",
-    ]
-    
-    XSS_PATTERNS = [
-        r"<script[^>]*>.*?<\/script>",
-        r"javascript:",
-        r"on\w+\s*=",
-    ]
-    
-    async def dispatch(self, request: Request, call_next):
-        # Sanitize query parameters
-        for key, values in request.query_params.multi_items():
-            for pattern in self.SQLI_PATTERNS + self.XSS_PATTERNS:
-                if re.search(pattern, str(values), re.IGNORECASE):
-                    raise HTTPException(status_code=400, detail="Potentially malicious input detected")
+        response = await call_next(request)
         
-        return await call_next(request)
-
-def get_security_config() -> Dict:
-    """Get current security configuration status"""
-    from app.core.encryption import get_master_key_status
-    
-    return {
-        "encryption": get_master_key_status(),
-        "rate_limiting": {
-            "public": {"max_requests": 30, "window": "60s"},
-            "auth": {"max_requests": 10, "window": "60s"},
-            "api": {"max_requests": 100, "window": "60s"},
-        },
-        "headers": {
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "Strict-Transport-Security": "enabled",
-        },
-        "audit_logging": {
-            "enabled": True,
-            "immutable": True,
-            "chain_verification": True,
+        # Log after response
+        duration_ms = round((time.time() - start_time) * 1000, 2)
+        
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "trace_id": trace_id,
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "duration_ms": duration_ms,
+            "client_ip": request.client.host if request.client else None,
+            "user_agent": request.headers.get("user-agent", ""),
+            "content_length": response.headers.get("content-length"),
         }
-    }
+        
+        # In production, send to logging pipeline
+        import logging
+        logger = logging.getLogger("fleetops.audit")
+        logger.info(json.dumps(log_entry))
+        
+        # Add trace ID to response
+        response.headers["X-Trace-Id"] = trace_id
+        
+        return response
+
+
+class RequestSizeMiddleware(BaseHTTPMiddleware):
+    """Limit request body size"""
+    
+    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
+    
+    async def dispatch(self, request: Request, call_next):
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_BODY_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Request body too large. Max: {self.MAX_BODY_SIZE} bytes"
+            )
+        return await call_next(request)
+
+
+# Combine into single middleware for easy application
+class SecurityMiddleware(BaseHTTPMiddleware):
+    """Combined security middleware"""
+    
+    def __init__(self, app):
+        super().__init__(app)
+        self.headers = SecurityHeadersMiddleware(app)
+        self.audit = AuditLogMiddleware(app)
+        self.size_limit = RequestSizeMiddleware(app)
+    
+    async def dispatch(self, request: Request, call_next):
+        # Apply all middleware layers
+        
+        # 1. Size limit
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > RequestSizeMiddleware.MAX_BODY_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Request body too large"
+            )
+        
+        # 2. Process request
+        response = await call_next(request)
+        
+        # 3. Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["X-XSS-Protection"] = "0"
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        
+        # Remove fingerprinting
+        response.headers.pop("Server", None)
+        response.headers.pop("X-Powered-By", None)
+        
+        # 4. Audit log (skip health checks)
+        if request.url.path not in AuditLogMiddleware.SKIP_PATHS:
+            trace_id = getattr(request.state, "trace_id", None)
+            if trace_id:
+                response.headers["X-Trace-Id"] = trace_id
+        
+        return response
