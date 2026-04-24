@@ -2,10 +2,19 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
+import os
 
 from app.core.config import settings
 from app.core.database import init_db, get_db, async_engine
-from app.api.routes import auth, organizations, teams, users, agents, tasks, approvals, events, dashboard, customer_service, hierarchy, providers, audit, dashboard_builder as db_builder, billing, webhooks, agent_execution, agent_instances, multi_agent
+from app.api.routes import (
+    auth, organizations, teams, users, agents, tasks, approvals, 
+    events, dashboard, customer_service, hierarchy, providers, 
+    audit, dashboard_builder as db_builder, billing, webhooks, 
+    agent_execution, agent_instances, multi_agent, llm_providers,
+    openwebui, pricing, search, websocket, health
+)
+
+from app.core.security_middleware import SecurityMiddleware
 
 security = HTTPBearer(auto_error=False)
 
@@ -24,9 +33,25 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# ─── Security Middleware ───────────────────────────────────────────────
+app.add_middleware(SecurityMiddleware)
+
+# ─── CORS ────────────────────────────────────────────────────────────
+CORS_ORIGINS = (
+    ["*"]
+    if settings.DEBUG
+    else [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        os.getenv("FRONTEND_URL", ""),
+    ]
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=[o for o in CORS_ORIGINS if o],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +77,14 @@ app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(agent_execution.router, prefix="/api/v1", tags=["agent-execution"])
 app.include_router(agent_instances.router, prefix="/api/v1", tags=["agent-instances"])
 app.include_router(multi_agent.router, prefix="/api/v1", tags=["multi-agent"])
+
+# ─── NEW: LLM Providers & External Services ───────────────────────────
+app.include_router(llm_providers.router, prefix="/api/v1", tags=["llm-providers"])
+app.include_router(openwebui.router, prefix="/api/v1", tags=["openwebui"])
+app.include_router(pricing.router, prefix="/api/v1", tags=["pricing"])
+app.include_router(search.router, prefix="/api/v1", tags=["search"])
+app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
+app.include_router(health.router, prefix="/api/v1", tags=["health"])
 
 @app.get("/health")
 async def health_check():
