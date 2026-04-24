@@ -1,12 +1,15 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16-alpine
+  # ─── PostgreSQL ─────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: fleetops-db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: fleetops
-      POSTGRES_PASSWORD: fleetops_dev_password
       POSTGRES_DB: fleetops
+      POSTGRES_USER: fleetops
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fleetops}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -17,46 +20,74 @@ services:
       timeout: 5s
       retries: 5
 
+  # ─── Redis ──────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    container_name: fleetops-redis
+    restart: unless-stopped
     volumes:
       - redis_data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 5
 
-  backend:
-    build: ./backend
-    environment:
-      DATABASE_URL: postgresql://fleetops:fleetops_dev_password@postgres:5432/fleetops
-      JWT_SECRET: your-dev-secret-key-change-in-production
-      REDIS_URL: redis://redis:6379
-      FRONTEND_URL: http://localhost:3000
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/app
+  # ─── FleetOps API ───────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fleetops-api
+    restart: unless-stopped
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-
-  frontend:
-    build: ./frontend
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://fleetops:${DB_PASSWORD:-fleetops}@db/fleetops
+      DATABASE_URL_SYNC: postgresql://fleetops:${DB_PASSWORD:-fleetops}@db/fleetops
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      # Required: set in .env
+      SECRET_KEY: ${SECRET_KEY}
+      # Agent connectors (optional)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Frontend
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      # Debug
+      DEBUG: ${DEBUG:-false}
     ports:
-      - "3000:3000"
+      - "8000:8000"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    command: npm run dev -- --host
+      - ./backend/app:/app/app:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─── (Optional) Frontend ────────────────────────────────────────────
+  # Uncomment when you have a frontend
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: fleetops-frontend
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - api
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     API_URL: http://api:8000
 
 volumes:
   postgres_data:
