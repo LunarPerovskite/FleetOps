@@ -195,6 +195,15 @@ class AnthropicAdapter:
         except Exception as e:
             return {"status": "error", "error": str(e)}
     
+    async def list_models(self) -> List[Dict]:
+        """List available Anthropic models"""
+        return [
+            {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet", "owned_by": "anthropic"},
+            {"id": "claude-3-opus-20240229", "name": "Claude 3 Opus", "owned_by": "anthropic"},
+            {"id": "claude-3-sonnet-20240229", "name": "Claude 3 Sonnet", "owned_by": "anthropic"},
+            {"id": "claude-3-haiku-20240307", "name": "Claude 3 Haiku", "owned_by": "anthropic"}
+        ]
+    
     async def close(self):
         await self.client.aclose()
 
@@ -275,6 +284,15 @@ class GeminiAdapter:
         except Exception as e:
             return {"status": "error", "error": str(e)}
     
+    async def list_models(self) -> List[Dict]:
+        """List available Gemini models"""
+        return [
+            {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro", "owned_by": "google"},
+            {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash", "owned_by": "google"},
+            {"id": "gemini-pro", "name": "Gemini Pro", "owned_by": "google"},
+            {"id": "gemini-pro-vision", "name": "Gemini Pro Vision", "owned_by": "google"}
+        ]
+    
     async def close(self):
         await self.client.aclose()
 
@@ -348,6 +366,16 @@ class AzureOpenAIAdapter:
         except Exception as e:
             return {"status": "error", "error": str(e)}
     
+    async def list_models(self) -> List[Dict]:
+        """List available Azure OpenAI deployments"""
+        return [
+            {"id": "gpt-4o", "name": "GPT-4o", "owned_by": "openai"},
+            {"id": "gpt-4", "name": "GPT-4", "owned_by": "openai"},
+            {"id": "gpt-4-turbo", "name": "GPT-4 Turbo", "owned_by": "openai"},
+            {"id": "gpt-35-turbo", "name": "GPT-3.5 Turbo", "owned_by": "openai"},
+            {"id": "text-embedding-3-large", "name": "Text Embedding 3 Large", "owned_by": "openai"}
+        ]
+    
     async def close(self):
         await self.client.aclose()
 
@@ -377,6 +405,10 @@ class UnifiedLLMChatAdapter:
     async def chat(self, messages: List[Dict], task_id: str, **kwargs) -> Dict[str, Any]:
         """Chat with any provider"""
         return await self.adapter.chat(messages, task_id, **kwargs)
+    
+    async def list_models(self) -> List[Dict]:
+        """List models from the current provider"""
+        return await self.adapter.list_models()
     
     async def close(self):
         if self.adapter:
