@@ -1,7 +1,15 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, ValidationError
 from typing import List, Optional
+import os
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"  # Allow extra env vars without error
+    )
+    
     APP_NAME: str = "FleetOps"
     DEBUG: bool = False
     
@@ -12,10 +20,17 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    # Auth
-    SECRET_KEY: str = "your-super-secret-key-change-in-production"
+    # Auth — REQUIRED in production
+    SECRET_KEY: str = Field(
+        default="",
+        env="SECRET_KEY",
+        description="JWT signing key. MUST be set in production."
+    )
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Frontend URL for CORS
+    FRONTEND_URL: Optional[str] = None
     
     # ═══════════════════════════════════════
     # AGENT CONNECTORS (17+ Supported)
@@ -106,9 +121,15 @@ class Settings(BaseSettings):
     # Evidence store
     EVIDENCE_HOT_DAYS: int = 90
     EVIDENCE_COLD_DAYS: int = 365
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 settings = Settings()
+
+# Validate critical settings in production
+if not settings.DEBUG:
+    if not settings.SECRET_KEY or len(settings.SECRET_KEY) < 32:
+        import warnings
+        warnings.warn(
+            "SECRET_KEY is not set or too short. "
+            "Set a strong SECRET_KEY environment variable for production.",
+            RuntimeWarning
+        )
