@@ -67,16 +67,33 @@ def cmd_status(args):
     # Check provider configs
     print_header("Configured Providers")
     providers = []
-    if settings.OPENAI_API_KEY:
-        providers.append("OpenAI")
-    if settings.ANTHROPIC_API_KEY:
-        providers.append("Anthropic")
-    if settings.OPENROUTER_API_KEY:
-        providers.append("OpenRouter")
-    if settings.GROQ_API_KEY:
-        providers.append("Groq")
-    if settings.OLLAMA_URL:
-        providers.append("Ollama")
+    
+    # Safely check optional settings
+    try:
+        if hasattr(settings, 'OPENAI_API_KEY') and settings.OPENAI_API_KEY:
+            providers.append("OpenAI")
+    except AttributeError:
+        pass
+    try:
+        if hasattr(settings, 'ANTHROPIC_API_KEY') and settings.ANTHROPIC_API_KEY:
+            providers.append("Anthropic")
+    except AttributeError:
+        pass
+    try:
+        if hasattr(settings, 'OPENROUTER_API_KEY') and settings.OPENROUTER_API_KEY:
+            providers.append("OpenRouter")
+    except AttributeError:
+        pass
+    try:
+        if hasattr(settings, 'GROQ_API_KEY') and settings.GROQ_API_KEY:
+            providers.append("Groq")
+    except AttributeError:
+        pass
+    try:
+        if hasattr(settings, 'OLLAMA_URL') and settings.OLLAMA_URL:
+            providers.append("Ollama")
+    except AttributeError:
+        pass
     
     if providers:
         for p in providers:

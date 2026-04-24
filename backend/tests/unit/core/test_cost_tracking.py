@@ -43,7 +43,7 @@ class TestProviderPricingFetcher:
             mock_response.raise_for_status = Mock()
             mock_get.return_value = mock_response
 
-            result = await fetcher.fetch_openrouter()
+            result = await fetcher.fetch_openrouter_pricing()
 
             assert "openai/gpt-4" in result
             assert result["openai/gpt-4"]["input_cost_per_1k"] == 0.03
@@ -61,14 +61,14 @@ class TestProviderPricingFetcher:
             mock_response.raise_for_status = Mock()
             mock_get.return_value = mock_response
 
-            result = await fetcher.fetch_groq()
+            result = await fetcher.fetch_groq_pricing()
             assert "mixtral-8x7b-32768" in result or result == {}
 
     @pytest.mark.asyncio
     async def test_fetch_with_error(self, fetcher):
         """Test graceful handling of API errors."""
         with patch("httpx.AsyncClient.get", side_effect=Exception("Network error")):
-            result = await fetcher.fetch_openrouter()
+            result = await fetcher.fetch_openrouter_pricing()
             assert result == {}
 
 

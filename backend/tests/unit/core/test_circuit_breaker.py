@@ -1,5 +1,6 @@
 """Unit tests for circuit breaker module."""
 import pytest
+import time
 import asyncio
 from unittest.mock import AsyncMock, Mock
 
@@ -57,7 +58,7 @@ class TestCircuitBreaker:
     async def test_open_circuit_rejects(self, breaker):
         """Test open circuit rejects calls immediately."""
         breaker.state = CircuitState.OPEN
-        breaker.last_failure_time = asyncio.get_event_loop().time()
+        breaker.last_failure_time = time.time()  # Current time
         
         mock_func = AsyncMock(return_value="success")
         
@@ -101,7 +102,7 @@ class TestCircuitBreaker:
         """Test status reporting."""
         breaker.state = CircuitState.OPEN
         breaker.failure_count = 5
-        breaker.last_failure_time = asyncio.get_event_loop().time()
+        breaker.last_failure_time = time.time() - 0.1  # Recent failure, still cooling
         
         status = breaker.get_status()
         
