@@ -6,6 +6,11 @@ import os
 
 from app.core.config import settings
 from app.core.database import init_db, get_db, async_engine
+from app.core.logging_config import setup_logging
+
+# ─── Setup Logging ─────────────────────────────────────────────────────
+setup_logging(level=settings.LOG_LEVEL, json_format=not settings.DEBUG)
+
 from app.api.routes import (
     auth, organizations, teams, users, agents, tasks, approvals, 
     events, dashboard, customer_service, hierarchy, providers, 
