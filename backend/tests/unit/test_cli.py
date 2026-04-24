@@ -8,13 +8,19 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/cli')
 sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
 
-from fleetops import (
-    print_header,
-    print_table,
-    cmd_status,
-    cmd_config,
-    main
-)
+# Import using importlib
+import importlib.util
+cli_path = '/data/.openclaw/workspace/fleetops-temp/cli/fleetops'
+spec = importlib.util.spec_from_file_location("fleetops_cli", cli_path)
+fleetops_module = importlib.util.module_from_spec(spec)
+sys.modules["fleetops_cli"] = fleetops_module
+spec.loader.exec_module(fleetops_module)
+
+print_header = fleetops_module.print_header
+print_table = fleetops_module.print_table
+cmd_status = fleetops_module.cmd_status
+cmd_config = fleetops_module.cmd_config
+main = fleetops_module.main
 
 
 class TestPrintHelpers:
