@@ -102,7 +102,7 @@ class TestCircuitBreaker:
         """Test status reporting."""
         breaker.state = CircuitState.OPEN
         breaker.failure_count = 5
-        breaker.last_failure_time = time.time() - 0.1  # Recent failure, still cooling
+        breaker.last_failure_time = time.time()  # Failure just happened
         
         status = breaker.get_status()
         
