@@ -5,9 +5,10 @@ System status, readiness, and liveness probes
 
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import datetime
 
-from app.core.database import get_db
+from app.core.database import get_sync_db
 from app.core.auth import verify_token
 from app.core.metrics import get_metrics_text
 
@@ -35,11 +36,11 @@ def metrics_endpoint():
 
 
 @router.get("/ready")
-def readiness_check(db: Session = Depends(get_db)):
+def readiness_check(db: Session = Depends(get_sync_db)):
     """Readiness check - verifies database connectivity"""
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         
         return {
             "status": "ready",
@@ -70,13 +71,13 @@ def liveness_check():
 
 
 @router.get("/health/detailed")
-def detailed_health_check(db: Session = Depends(get_db)):
+def detailed_health_check(db: Session = Depends(get_sync_db)):
     """Detailed health check with all service statuses"""
     checks = {}
     
     # Database check
     try:
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         checks["database"] = {"status": "ok", "response_time_ms": 0}
     except Exception as e:
         checks["database"] = {"status": "error", "message": str(e)}
