@@ -18,6 +18,7 @@ import httpx
 
 from app.core.usage_extraction import RealUsageExtractor
 from app.core.cost_tracking import cost_tracker
+from app.core.circuit_breaker import circuit_breaker
 
 
 class OpenAIAdapter:
@@ -41,6 +42,7 @@ class OpenAIAdapter:
             follow_redirects=True
         )
     
+    @circuit_breaker("openai", failure_threshold=5, recovery_timeout=30)
     async def chat(self, messages: List[Dict], task_id: str,
                   model: Optional[str] = None,
                   temperature: float = 0.7,
@@ -134,6 +136,7 @@ class AnthropicAdapter:
             follow_redirects=True
         )
     
+    @circuit_breaker("anthropic", failure_threshold=5, recovery_timeout=30)
     async def chat(self, messages: List[Dict], task_id: str,
                   model: Optional[str] = None,
                   max_tokens: int = 4096,
@@ -211,6 +214,7 @@ class GeminiAdapter:
             follow_redirects=True
         )
     
+    @circuit_breaker("gemini", failure_threshold=5, recovery_timeout=30)
     async def chat(self, messages: List[Dict], task_id: str,
                   model: Optional[str] = None,
                   user_id: Optional[str] = None) -> Dict[str, Any]:
@@ -296,6 +300,7 @@ class AzureOpenAIAdapter:
             follow_redirects=True
         )
     
+    @circuit_breaker("azure_openai", failure_threshold=5, recovery_timeout=30)
     async def chat(self, messages: List[Dict], task_id: str,
                   deployment: Optional[str] = None,
                   user_id: Optional[str] = None) -> Dict[str, Any]:
