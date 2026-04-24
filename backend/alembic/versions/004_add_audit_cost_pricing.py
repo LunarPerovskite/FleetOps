@@ -51,7 +51,7 @@ def upgrade() -> None:
         sa.Column('cost_usd', sa.Float(), default=0.0),
         sa.Column('latency_ms', sa.Integer(), nullable=True),
         sa.Column('timestamp', sa.DateTime(), server_default=sa.func.now()),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), default=dict),
+        sa.Column('extra_data', postgresql.JSONB(astext_type=sa.Text()), default=dict),
     )
     op.create_index('ix_cost_records_timestamp', 'cost_records', ['timestamp'])
     op.create_index('ix_cost_records_task', 'cost_records', ['task_id'])

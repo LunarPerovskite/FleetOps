@@ -4,16 +4,29 @@ from sqlalchemy import create_engine
 from app.core.config import settings
 from app.models.models import Base
 
+# Detect database type
+IS_SQLITE = "sqlite" in settings.DATABASE_URL.lower()
+IS_ASYNC_SQLITE = "aiosqlite" in settings.DATABASE_URL.lower()
+
 # Async engine for FastAPI with connection pooling
+async_engine_kwargs = {
+    "echo": settings.DEBUG,
+    "future": True,
+}
+
+# SQLite doesn't support connection pooling options
+if not IS_ASYNC_SQLITE:
+    async_engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+        "pool_timeout": 30,
+    })
+
 async_engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    future=True,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,  # Health check connections before use
-    pool_recycle=3600,   # Recycle connections every hour
-    pool_timeout=30      # Wait up to 30s for a connection
+    **async_engine_kwargs
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -24,11 +37,18 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 # Sync engine for migrations and seeding
+sync_engine_kwargs = {
+    "echo": settings.DEBUG,
+}
+if not IS_SQLITE:
+    sync_engine_kwargs.update({
+        "pool_pre_ping": True,
+        "pool_recycle": 3600,
+    })
+
 sync_engine = create_engine(
     settings.DATABASE_URL_SYNC,
-    echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_recycle=3600
+    **sync_engine_kwargs
 )
 
 async def get_db():

@@ -227,7 +227,7 @@ class CostRecord(Base):
     cost_usd = Column(Float, default=0.0)
     latency_ms = Column(Integer)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    metadata = Column(JSON, default=dict)
+    extra_data = Column(JSON, default=dict)
 
 
 class PricingConfig(Base):
@@ -253,3 +253,15 @@ class PricingConfig(Base):
     notes = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Webhook(Base):
+    __tablename__ = "webhooks"
+    
+    id = Column(String(36), primary_key=True)
+    url = Column(String(500), nullable=False)
+    events = Column(JSON, default=list)
+    secret = Column(String(255))
+    org_id = Column(String(36), ForeignKey("organizations.id"))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

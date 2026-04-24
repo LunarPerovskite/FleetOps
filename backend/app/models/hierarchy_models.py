@@ -46,7 +46,7 @@ class HierarchyLevel(Base):
     auto_approve_threshold = Column(String(20))  # "low", "medium", "none"
     can_escalate_to = Column(JSON, default=list)  # Level IDs this can escalate to
     requires_approval_from = Column(JSON, default=list)  # Level IDs required for approval
-    metadata = Column(JSON, default=dict)
+    extra_data = Column(JSON, default=dict)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -81,7 +81,7 @@ class UserHierarchyAssignment(Base):
     assigned_at = Column(DateTime, default=datetime.utcnow)
     valid_until = Column(DateTime)  # For temporary promotions
     is_primary = Column(Boolean, default=True)  # Primary role vs secondary
-    metadata = Column(JSON, default=dict)
+    extra_data = Column(JSON, default=dict)
 
 class AgentHierarchyAssignment(Base):
     """Links an agent to their hierarchy level"""
@@ -96,7 +96,7 @@ class AgentHierarchyAssignment(Base):
     assigned_at = Column(DateTime, default=datetime.utcnow)
     is_primary = Column(Boolean, default=True)
     capabilities_override = Column(JSON, default=dict)  # Level-specific capabilities
-    metadata = Column(JSON, default=dict)
+    extra_data = Column(JSON, default=dict)
 
 class ApprovalLadder(Base):
     """Custom approval rules per org/scale"""

@@ -16,9 +16,9 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import httpx
 
-from sqlalchemy import Column, String, Float, DateTime, JSON, Boolean, Integer
+from sqlalchemy import Column, String, Float, DateTime, JSON, Boolean, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
-from app.database import SessionLocal
+from app.core.database import sync_engine, get_sync_db
 
 Base = declarative_base()
 
@@ -160,7 +160,7 @@ class DynamicCostTracker:
     
     async def _refresh_pricing_cache(self):
         """Refresh pricing cache from database and APIs"""
-        db = SessionLocal()
+        db = next(get_sync_db())
         try:
             # Load user-configured pricing from DB
             configs = db.query(PricingConfigDB).filter(PricingConfigDB.is_active == True).all()
@@ -353,7 +353,7 @@ class DynamicCostTracker:
     
     async def _save_usage_to_db(self, usage_data: Dict):
         """Save usage record to database"""
-        db = SessionLocal()
+        db = next(get_sync_db())
         try:
             from app.models.models import LLMUsage
             import uuid
@@ -379,7 +379,7 @@ class DynamicCostTracker:
     
     async def get_task_cost(self, task_id: str) -> Dict:
         """Get actual cost from database for a task"""
-        db = SessionLocal()
+        db = next(get_sync_db())
         try:
             from app.models.models import LLMUsage
             from sqlalchemy import func
@@ -419,7 +419,7 @@ class DynamicCostTracker:
     
     async def get_agent_cost(self, agent_id: str) -> Dict:
         """Get actual cost from database for an agent"""
-        db = SessionLocal()
+        db = next(get_sync_db())
         try:
             from app.models.models import LLMUsage
             
@@ -443,7 +443,7 @@ class DynamicCostTracker:
                               model_name: Optional[str] = None,
                               notes: Optional[str] = None) -> Dict:
         """Add or update user-configured pricing"""
-        db = SessionLocal()
+        db = next(get_sync_db())
         try:
             import uuid
             from sqlalchemy import and_

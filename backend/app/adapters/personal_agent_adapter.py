@@ -76,13 +76,13 @@ class PersonalAgentAdapter:
     def _initialize_adapter(self):
         """Initialize the specific adapter based on agent type"""
         # IDE Agents
-        elif self.agent_type in [AgentType.CLAUDE_CODE, AgentType.COPILOT, AgentType.CURSOR, 
-                                  AgentType.AIDER, AgentType.DEVIN, AgentType.CODY]:
+        if self.agent_type in [AgentType.CLAUDE_CODE, AgentType.COPILOT, AgentType.CURSOR, 
+                                AgentType.AIDER, AgentType.DEVIN, AgentType.CODY]:
             from app.adapters.ide_agent_adapter import UnifiedIDEAgentAdapter, IDEAgentType
             ide_type = IDEAgentType(self.agent_type.value)
             self._adapter = UnifiedIDEAgentAdapter(ide_type)
         # Personal agents
-        if self.agent_type in [AgentType.OPENCLAW]:
+        elif self.agent_type in [AgentType.OPENCLAW]:
             from app.adapters.openclaw_adapter import openclaw_adapter
             self._adapter = openclaw_adapter
         elif self.agent_type in [AgentType.HERMES]:

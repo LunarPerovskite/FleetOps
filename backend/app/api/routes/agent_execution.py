@@ -124,8 +124,21 @@ async def cancel_execution(
 async def list_supported_agents(
     current_user: User = Depends(get_current_user)
 ):
-from app.core.config import settings
-from app.adapters.all_adapters import ALL_ADAPTERS, ADAPTER_CATEGORIES
+    from app.core.config import settings
+    from app.adapters.all_adapters import ALL_ADAPTERS, ADAPTER_CATEGORIES
+    
+    agents = []
+    for agent_type, info in ALL_ADAPTERS.items():
+        url_env = info.get("url_env", "")
+        configured = bool(getattr(settings, url_env, None)) if url_env else False
+        agents.append({
+            "agent_type": agent_type,
+            "name": info.get("name", agent_type),
+            "category": info.get("category", "unknown"),
+            "description": info.get("description", ""),
+            "configured": configured
+        })
+    return {"agents": agents, "total": len(agents)}
 
 # ═══════════════════════════════════════
 # AGENT CONFIGURATION CHECK
