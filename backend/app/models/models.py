@@ -192,3 +192,64 @@ class LLMUsage(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     
     agent = relationship("Agent", back_populates="llm_usage")
+
+
+# ─── New Models for Missing Tables ─────────────────────────────────────
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    
+    id = Column(String(36), primary_key=True)
+    table_name = Column(String(100), nullable=False)
+    record_id = Column(String(36), nullable=False)
+    action = Column(String(50), nullable=False)  # INSERT, UPDATE, DELETE
+    old_values = Column(JSON)
+    new_values = Column(JSON)
+    changed_by = Column(String(36), ForeignKey("users.id"))
+    org_id = Column(String(36), ForeignKey("organizations.id"))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+
+
+class CostRecord(Base):
+    __tablename__ = "cost_records"
+    
+    id = Column(String(36), primary_key=True)
+    task_id = Column(String(36), ForeignKey("tasks.id"))
+    agent_id = Column(String(36), ForeignKey("agents.id"))
+    org_id = Column(String(36), ForeignKey("organizations.id"))
+    provider = Column(String(50))
+    model = Column(String(100))
+    tokens_in = Column(Integer, default=0)
+    tokens_out = Column(Integer, default=0)
+    tokens_cached = Column(Integer, default=0)
+    cost_usd = Column(Float, default=0.0)
+    latency_ms = Column(Integer)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    metadata = Column(JSON, default=dict)
+
+
+class PricingConfig(Base):
+    __tablename__ = "pricing_configs"
+    
+    id = Column(String(36), primary_key=True)
+    service = Column(String(100), nullable=False)
+    model = Column(String(100), nullable=False)
+    model_name = Column(String(255))
+    pricing_type = Column(String(50), default="pay_per_token")
+    input_rate_per_1m = Column(Float)
+    output_rate_per_1m = Column(Float)
+    cached_rate_per_1m = Column(Float)
+    monthly_cost = Column(Float)
+    annual_cost = Column(Float)
+    included_tokens = Column(Integer, default=0)
+    kwh_per_hour = Column(Float)
+    electricity_rate = Column(Float, default=0.15)
+    provider_url = Column(String(500))
+    last_fetched = Column(DateTime)
+    is_user_configured = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
