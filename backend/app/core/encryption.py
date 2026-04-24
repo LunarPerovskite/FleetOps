@@ -22,12 +22,36 @@ class FieldEncryption:
     
     def __init__(self):
         self.master_key = os.getenv("FLEETOPS_MASTER_KEY")
-        if not self.master_key:
-            # In development, generate a warning
-            print("WARNING: FLEETOPS_MASTER_KEY not set. Using development key.")
-            self.master_key = "dev-key-change-in-production-32-chars-long"
+        self.salt = os.getenv("FLEETOPS_ENCRYPTION_SALT", "").encode()
         
-        self.salt = os.getenv("FLEETOPS_ENCRYPTION_SALT", "change-this-salt").encode()
+        # Validate in production
+        if os.getenv("ENV", "development").lower() == "production":
+            if not self.master_key or len(self.master_key) < 32:
+                raise RuntimeError(
+                    "FLEETOPS_MASTER_KEY must be set and at least 32 characters in production"
+                )
+            if not self.salt:
+                raise RuntimeError(
+                    "FLEETOPS_ENCRYPTION_SALT must be set in production"
+                )
+        
+        # Development fallbacks with warnings
+        if not self.master_key:
+            import warnings
+            warnings.warn(
+                "FLEETOPS_MASTER_KEY not set. Using development-only encryption.",
+                RuntimeWarning
+            )
+            self.master_key = os.urandom(32).hex()
+        
+        if not self.salt:
+            import warnings
+            warnings.warn(
+                "FLEETOPS_ENCRYPTION_SALT not set. Generating random salt.",
+                RuntimeWarning
+            )
+            self.salt = os.urandom(16)
+        
         self.fernet = self._create_fernet()
     
     def _create_fernet(self) -> Fernet:

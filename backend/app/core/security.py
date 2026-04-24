@@ -9,7 +9,39 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import secrets
 import hashlib
-from typing import Optional
+import os
+from typing import Optional, List
+
+# ═══════════════════════════════════════
+# CONFIGURABLE SECURITY SETTINGS
+# ═══════════════════════════════════════
+
+# CORS origins - configurable via environment
+CORS_ALLOW_ORIGINS = os.getenv(
+    "CORS_ALLOW_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8000"
+).split(",")
+
+# Trusted hosts - configurable via environment
+TRUSTED_HOSTS = os.getenv(
+    "TRUSTED_HOSTS",
+    "localhost,*.fleetops.local"
+).split(",")
+
+# Rate limit per minute
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "100"))
+
+# HSTS max age
+HSTS_MAX_AGE = int(os.getenv("HSTS_MAX_AGE", "31536000"))
+
+# CSP policy
+CSP_POLICY = os.getenv(
+    "CSP_POLICY",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; "
+    "font-src 'self' data:; connect-src 'self' https:; "
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+)
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses"""
@@ -18,17 +50,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         
         # Content Security Policy
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' data:; "
-            "connect-src 'self' https:; "
-            "frame-ancestors 'none'; "
-            "base-uri 'self'; "
-            "form-action 'self';"
-        )
+        response.headers["Content-Security-Policy"] = CSP_POLICY
         
         # XSS Protection
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -37,7 +59,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         
         # HSTS (HTTPS Strict Transport Security)
         response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains; preload"
+            f"max-age={HSTS_MAX_AGE}; includeSubDomains; preload"
         )
         
         # Referrer Policy
@@ -123,14 +145,13 @@ def setup_security(app):
     app.add_middleware(SecurityHeadersMiddleware)
     
     # CORS
+    origins = CORS_ALLOW_ORIGINS
+    if settings.DEBUG:
+        origins = ["*"]
+    
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "https://*.vercel.app",
-            "https://*.railway.app"
-        ],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
@@ -138,14 +159,13 @@ def setup_security(app):
     )
     
     # Trusted hosts
+    hosts = TRUSTED_HOSTS
+    if settings.DEBUG:
+        hosts = ["*"]
+    
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=[
-            "localhost",
-            "*.vercel.app",
-            "*.railway.app",
-            "*.fleetops.io"
-        ]
+        allowed_hosts=hosts
     )
     
     # Note: CSRF and RateLimit middleware require Redis
