@@ -221,6 +221,18 @@ Works with ANY LLM provider, IDE agent, or multi-agent framework. Not locked int
 - Agent-to-agent communication with audit trails
 - Swarm coordination: spawn, monitor, terminate agent collectives
 - Automatic cost attribution per agent in a swarm
+- **Unlimited hierarchy levels** — agents can have sub-agents, which can have sub-agents, ad infinitum
+- Higher hierarchy level = more authority, bigger budgets, broader permissions
+
+### 7. Agent & Human Hierarchy
+- **Human hierarchies**: Executive → Director → Senior → Operator → Reviewer → Viewer
+- **Agent hierarchies**: Lead → Senior → Junior → Specialist → Monitor
+- **Mixed hierarchies**: Human manager supervises agent team, lead agent supervises junior agents
+- **Unlimited sub-agents** per parent agent (configurable limit per agent)
+- Higher level = larger auto-approve budgets, more permissions
+- Escalation flows up the hierarchy automatically
+- Cost roll-up: parent sees total cost of entire subtree
+- Sub-agent tasks inherit parent's budget pool (or have separate limits)
 
 ### 7. Compliance & Audit
 - Immutable audit trail (cryptographically signed)
