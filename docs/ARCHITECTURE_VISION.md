@@ -181,3 +181,83 @@ DEFAULT_BUDGET_USD=5.00
 - Cost reports frontend
 - Model governance UI
 - Tests
+
+## Competitive Moats
+
+### 1. Provider-Agnostic Governance
+Works with ANY LLM provider, IDE agent, or multi-agent framework. Not locked into one ecosystem.
+
+### 2. Real Cost Tracking with API Pricing
+- Fetches actual pricing from OpenRouter, Groq, Together APIs
+- Auto-discovers new models
+- Tracks actual token usage from API responses (not estimates)
+- Supports pay_per_token, subscription, free_local, aggregator pricing types
+
+### 3. Budget Enforcement
+- Per-user, per-organization spending limits
+- Hard stops when budget exceeded
+- Alert thresholds (80%, 95%, 100%)
+- Budget reset cycles (daily, weekly, monthly)
+
+### 4. Production Hardening
+- Circuit breakers on all external LLM providers
+- Redis-backed rate limiting (per-user, per-org, per-IP)
+- Security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)
+- Request size limits
+- Structured audit logging with trace IDs
+
+### 5. Async Human Approval
+- Stage-based approval chains (operator → senior → director)
+- Timeout handling (auto-approve, auto-reject, or escalate)
+- Callback system for external systems
+- WebSocket real-time updates
+
+### 6. Multi-Agent Orchestration
+- Sequential, parallel, debate workflow modes
+- Load balancing across providers
+- Fallback when one provider fails
+- CrewAI, AutoGen, MetaGPT integration
+
+### 7. Compliance & Audit
+- Immutable audit trail (cryptographically signed)
+- PII detection and redaction
+- Data retention policies
+- GDPR/SOC2-ready evidence chain
+
+### 8. Observability
+- Prometheus metrics endpoint
+- Request timing, token tracking, cost tracking
+- Circuit breaker state monitoring
+- Structured JSON logging
+
+### 9. Extensibility
+- 20+ adapters (OpenAI, Anthropic, Gemini, Azure, Ollama, OpenWebUI, etc.)
+- Plugin architecture for new providers
+- Webhook system for real-time events
+- CLI tool for automation
+
+### 10. Self-Hosted by Default
+- Your data stays on your infrastructure
+- No vendor lock-in
+- No per-seat pricing
+- Full source code access (MIT license)
+
+### Why These Moats Matter
+
+**For Enterprises:**
+- Budget control prevents AI overspend
+- Audit trails satisfy compliance requirements
+- Approval workflows prevent unauthorized changes
+- Self-hosted = data sovereignty
+
+**For Teams:**
+- Cost transparency across all AI usage
+- No surprise bills at month-end
+- Governance without slowing down developers
+- Works with existing tools (no migration)
+
+**For Developers:**
+- Use any agent framework you want
+- Switch LLM providers without changing code
+- Track costs per project/agent
+- Local development with same governance
