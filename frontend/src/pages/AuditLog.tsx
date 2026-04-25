@@ -5,7 +5,7 @@ import { ErrorDisplay, EmptyState } from '../components/ErrorDisplay';
 import SearchBar from '../components/SearchBar';
 import { Shield, Clock, User, Bot, FileText } from 'lucide-react';
 
-const eventIcons = {
+const eventIcons: Record<string, React.ComponentType<any>> = {
   task_created: FileText,
   task_completed: FileText,
   task_approved: Shield,
@@ -14,7 +14,7 @@ const eventIcons = {
   user_action: User,
 };
 
-const eventColors = {
+const eventColors: Record<string, string> = {
   task_created: 'bg-blue-50 text-blue-700',
   task_completed: 'bg-green-50 text-green-700',
   task_approved: 'bg-purple-50 text-purple-700',

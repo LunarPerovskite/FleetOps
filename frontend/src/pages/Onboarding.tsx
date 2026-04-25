@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '../lib/api';
+import api from '../lib/api';
 import { Loading } from '../components/Loading';
 import { toast } from '../hooks/useToast';
 import { 
@@ -48,7 +48,7 @@ export default function Onboarding() {
 
   const fetchProgress = async () => {
     try {
-      const response = await apiClient('/onboarding/progress');
+      const response = await api.get('/onboarding/progress');
       const sortedSteps = response.steps.sort((a: OnboardingStep, b: OnboardingStep) => a.order - b.order);
       setSteps(sortedSteps);
       
@@ -66,7 +66,7 @@ export default function Onboarding() {
 
   const completeStep = async (stepId: string) => {
     try {
-      await apiClient(`/onboarding/steps/${stepId}/complete`, { method: 'POST' });
+      await api.post(`/onboarding/steps/${stepId}/complete`);
       
       setSteps(prev => prev.map(s => 
         s.id === stepId ? { ...s, completed: true } : s
@@ -88,7 +88,7 @@ export default function Onboarding() {
 
   const skipStep = async (stepId: string) => {
     try {
-      await apiClient(`/onboarding/steps/${stepId}/skip`, { method: 'POST' });
+      await api.post(`/onboarding/steps/${stepId}/skip`);
       setSteps(prev => prev.map(s => 
         s.id === stepId ? { ...s, completed: true } : s
       ));

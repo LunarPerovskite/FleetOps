@@ -50,6 +50,8 @@ export function useToasts() {
   return currentToasts;
 }
 
+export const useToast = useToasts;
+
 // Convenience functions
 export const toast = {
   success: (message: string) => showToast('success', message),

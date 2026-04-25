@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useToast } from '../hooks/useToast';
 import { 
   Plug, 
   ExternalLink, 
@@ -296,7 +297,7 @@ export default function Integrations() {
               </div>
             </div>
           );
-        })}>
+        })}
       </div>
 
       {/* Integration Detail Modal */}

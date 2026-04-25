@@ -193,4 +193,20 @@ export const billingAPI = {
   tiers: () => api.get('/billing/tiers'),
 };
 
-export default api;
+export { api, api as default, api as apiClient };
+
+// WebSocket
+const WS_URL = (import.meta.env.VITE_WS_URL || 'ws://localhost:8000').replace(/^http/, 'ws');
+
+export function createWebSocketConnection(path: string = '/ws'): WebSocket | null {
+  try {
+    const token = localStorage.getItem('token');
+    const url = new URL(path, WS_URL);
+    if (token) {
+      url.searchParams.set('token', token);
+    }
+    return new WebSocket(url.toString());
+  } catch {
+    return null;
+  }
+}
