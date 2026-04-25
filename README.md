@@ -111,11 +111,15 @@ Works with ANY LLM provider, IDE agent, or multi-agent framework. Not locked int
 - Callback system for external systems
 - WebSocket real-time updates
 
-#### 6. **Multi-Agent Orchestration**
+#### 6. **Multi-Agent Orchestration (Agent Swarms)**
 - Sequential, parallel, debate workflow modes
+- **Managed with OR without humans** — autonomous when safe, human-in-the-loop for critical decisions
 - Load balancing across providers
 - Fallback when one provider fails
 - CrewAI, AutoGen, MetaGPT integration
+- Agent-to-agent communication with audit trails
+- Swarm coordination: spawn, monitor, terminate agent collectives
+- Automatic cost attribution per agent in a swarm
 
 #### 7. **Compliance & Audit**
 - Immutable audit trail (cryptographically signed)
@@ -140,6 +144,17 @@ Works with ANY LLM provider, IDE agent, or multi-agent framework. Not locked int
 - No vendor lock-in
 - No per-seat pricing
 - Full source code access (MIT license)
+
+#### 11. **Agent Swarm Management**
+- Spawn and coordinate 10s to 100s of agents simultaneously
+- **Human-on-the-loop** (watching) vs **human-in-the-loop** (blocking)
+- Swarm supervision: one human oversees many agents
+- Automatic escalation: agent asks for help when stuck
+- Cost attribution per agent in a swarm
+- Terminate rogue agents automatically
+- Audit trail for every agent action
+- Works with CrewAI, AutoGen, MetaGPT swarms
+- Mix autonomous and supervised agents in same workflow
 
 ### Why These Moats Matter
 
