@@ -22,9 +22,9 @@ class TestOpenAIUsageExtraction:
             },
             "model": "gpt-4"
         }
-        
+
         result = RealUsageExtractor.extract_openai_usage(response)
-        
+
         assert result["input_tokens"] == 10
         assert result["output_tokens"] == 5
         assert result["total_tokens"] == 15
@@ -36,9 +36,9 @@ class TestOpenAIUsageExtraction:
         response = {
             "choices": [{"message": {"content": "Hello world this is a test"}}]
         }
-        
+
         result = RealUsageExtractor.extract_openai_usage(response)
-        
+
         assert result["has_real_usage"] is False
         assert result["input_tokens"] == 0
         assert result["output_tokens"] > 0  # Estimated from content
@@ -57,9 +57,9 @@ class TestOpenAIUsageExtraction:
                 }
             }
         }
-        
+
         result = RealUsageExtractor.extract_openai_usage(response)
-        
+
         assert result["cached_tokens"] == 80
         assert result["has_real_usage"] is True
 
@@ -77,9 +77,9 @@ class TestAnthropicUsageExtraction:
             },
             "model": "claude-3-opus-20240229"
         }
-        
+
         result = RealUsageExtractor.extract_anthropic_usage(response)
-        
+
         assert result["input_tokens"] == 20
         assert result["output_tokens"] == 10
         assert result["total_tokens"] == 30
@@ -90,9 +90,9 @@ class TestAnthropicUsageExtraction:
         response = {
             "content": [{"text": "Hello world"}]
         }
-        
+
         result = RealUsageExtractor.extract_anthropic_usage(response)
-        
+
         assert result["has_real_usage"] is False
 
 
@@ -114,9 +114,9 @@ class TestGroqUsageExtraction:
                 }
             }
         }
-        
+
         result = RealUsageExtractor.extract_groq_usage(response)
-        
+
         assert result["input_tokens"] == 10
         assert result["output_tokens"] == 5
         assert result["has_real_usage"] is True
@@ -135,9 +135,9 @@ class TestPerplexityUsageExtraction:
             },
             "citations": ["http://example.com"]
         }
-        
+
         result = RealUsageExtractor.extract_perplexity_usage(response)
-        
+
         assert result["input_tokens"] == 15
         assert result["output_tokens"] == 25
         assert result["has_real_usage"] is True
@@ -155,9 +155,9 @@ class TestOpenRouterUsageExtraction:
             },
             "model": "openai/gpt-4"
         }
-        
+
         result = RealUsageExtractor.extract_openrouter_usage(response)
-        
+
         assert result["input_tokens"] == 10
         assert result["output_tokens"] == 5
         assert result["has_real_usage"] is True
@@ -174,9 +174,9 @@ class TestOllamaUsageExtraction:
             "eval_count": 50,
             "model": "llama3.1:8b"
         }
-        
+
         result = RealUsageExtractor.extract_ollama_usage(response)
-        
+
         assert result["input_tokens"] == 100
         assert result["output_tokens"] == 50
         assert result["total_tokens"] == 150
@@ -188,9 +188,9 @@ class TestOllamaUsageExtraction:
         response = {
             "message": {"content": "Hello world this is a test response"}
         }
-        
+
         result = RealUsageExtractor.extract_ollama_usage(response)
-        
+
         assert result["has_real_usage"] is False
         assert result["input_tokens"] == 0
 
@@ -207,9 +207,9 @@ class TestGeminiUsageExtraction:
                 "totalTokenCount": 15
             }
         }
-        
+
         result = RealUsageExtractor.extract_gemini_usage(response)
-        
+
         assert result["input_tokens"] == 10
         assert result["output_tokens"] == 5
         assert result["total_tokens"] == 15
@@ -224,9 +224,9 @@ class TestGenericExtraction:
             "object": "chat.completion",
             "usage": {"prompt_tokens": 10}
         }
-        
-        result = RealUsageExtractor.extract(response, provider="openai")
-        
+
+        result = RealUsageExtractor.extract("openai", response)
+
         assert result["has_real_usage"] is True
 
     def test_detects_anthropic(self):
@@ -234,16 +234,16 @@ class TestGenericExtraction:
             "type": "message",
             "usage": {"input_tokens": 10}
         }
-        
-        result = RealUsageExtractor.extract(response, provider="anthropic")
-        
+
+        result = RealUsageExtractor.extract("anthropic", response)
+
         assert result["has_real_usage"] is True
 
     def test_unknown_provider(self):
         response = {"text": "Hello"}
-        
-        result = RealUsageExtractor.extract(response, provider="unknown")
-        
+
+        result = RealUsageExtractor.extract("unknown", response)
+
         assert result["has_real_usage"] is False
         assert result["input_tokens"] == 0
 
@@ -254,9 +254,9 @@ class TestTokenEstimation:
     def test_estimate_from_text(self):
         """Test estimating tokens from text content."""
         text = "Hello world, this is a test message with approximately twelve tokens."
-        
+
         result = RealUsageExtractor._estimate_tokens(text)
-        
+
         assert result > 0
         # Rough estimate: ~4 chars per token for English
         assert result < len(text)
