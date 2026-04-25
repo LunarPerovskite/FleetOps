@@ -68,6 +68,7 @@ jobs:
     - name: Run tests
       run: |
         cd backend
+        export PYTHONPATH=$(pwd)
         pytest tests/unit/ -v --cov=app --cov-report=xml --tb=short
       env:
         DATABASE_URL: ${{ env.DATABASE_URL }}
@@ -75,6 +76,7 @@ jobs:
         REDIS_URL: ${{ env.REDIS_URL }}
         SECRET_KEY: ${{ env.SECRET_KEY }}
         JWT_SECRET: ${{ env.JWT_SECRET }}
+        PYTHONPATH: /home/runner/work/FleetOps/FleetOps/backend
     
     - name: Upload coverage
       uses: codecov/codecov-action@v4
