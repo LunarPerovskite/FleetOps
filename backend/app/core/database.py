@@ -8,52 +8,117 @@ from app.models.models import Base
 IS_SQLITE = "sqlite" in settings.DATABASE_URL.lower()
 IS_ASYNC_SQLITE = "aiosqlite" in settings.DATABASE_URL.lower()
 
-# Async engine for FastAPI with connection pooling
-async_engine_kwargs = {
-    "echo": settings.DEBUG,
-    "future": True,
-}
+# ── Lazy engine creation ───────────────────────────────
+# We delay engine creation until first access so that tests
+# which set DATABASE_URL at runtime (e.g. to sqlite) don't
+# fail at import time because a DB driver is missing.
+# ─────────────────────────────────────────────────────
 
-# SQLite doesn't support connection pooling options
-if not IS_ASYNC_SQLITE:
-    async_engine_kwargs.update({
-        "pool_size": 10,
-        "max_overflow": 20,
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-        "pool_timeout": 30,
-    })
+_async_engine = None
+_sync_engine = None
 
-async_engine = create_async_engine(
-    settings.DATABASE_URL,
-    **async_engine_kwargs
-)
+def _make_async_engine():
+    """Create async engine on demand."""
+    kwargs = {
+        "echo": settings.DEBUG,
+        "future": True,
+    }
+    if not IS_ASYNC_SQLITE:
+        kwargs.update({
+            "pool_size": 10,
+            "max_overflow": 20,
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,
+            "pool_timeout": 30,
+        })
+    return create_async_engine(settings.DATABASE_URL, **kwargs)
 
-AsyncSessionLocal = async_sessionmaker(
-    async_engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False
-)
+def _make_sync_engine():
+    """Create sync engine on demand."""
+    kwargs = {
+        "echo": settings.DEBUG,
+    }
+    if not IS_SQLITE:
+        kwargs.update({
+            "pool_pre_ping": True,
+            "pool_recycle": 3600,
+        })
+    return create_engine(settings.DATABASE_URL_SYNC, **kwargs)
 
-# Sync engine for migrations and seeding
-sync_engine_kwargs = {
-    "echo": settings.DEBUG,
-}
-if not IS_SQLITE:
-    sync_engine_kwargs.update({
-        "pool_pre_ping": True,
-        "pool_recycle": 3600,
-    })
 
-sync_engine = create_engine(
-    settings.DATABASE_URL_SYNC,
-    **sync_engine_kwargs
-)
+class _EngineProxy:
+    """Lazy proxy that creates the real engine on first attribute access."""
+    __slots__ = ("_real", "_maker")
+
+    def __init__(self, maker):
+        self._real = None
+        self._maker = maker
+
+    def _ensure(self):
+        if self._real is None:
+            self._real = self._maker()
+        return self._real
+
+    # ── SQLAlchemy engine attributes ──
+    def execute(self, *a, **kw):
+        return self._ensure().execute(*a, **kw)
+
+    def connect(self):
+        return self._ensure().connect()
+
+    def begin(self):
+        return self._ensure().begin()
+
+    def dispose(self):
+        if self._real is not None:
+            self._real.dispose()
+            self._real = None
+
+    @property
+    def dialect(self):
+        return self._ensure().dialect
+
+    @property
+    def url(self):
+        return self._ensure().url
+
+    # Pass through everything else
+    def __getattr__(self, name):
+        return getattr(self._ensure(), name)
+
+
+# Module-level exports: access these just like normal engines.
+# The real engine is created lazily when first used.
+async_engine = _EngineProxy(_make_async_engine)
+sync_engine = _EngineProxy(_make_sync_engine)
+
+# ── Session factories (lazy too) ─────────────────────
+
+_async_session_local = None
+_sync_session_local = None
+
+def _get_async_session_local():
+    global _async_session_local
+    if _async_session_local is None:
+        _async_session_local = async_sessionmaker(
+            async_engine,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            autoflush=False,
+        )
+    return _async_session_local
+
+def _get_sync_session_local():
+    global _sync_session_local
+    if _sync_session_local is None:
+        _sync_session_local = sessionmaker(bind=sync_engine)
+    return _sync_session_local
+
 
 async def get_db():
     """Dependency for getting async database sessions"""
-    async with AsyncSessionLocal() as session:
+    factory = _get_async_session_local()
+    async with factory() as session:
         try:
             yield session
             await session.commit()
@@ -63,10 +128,12 @@ async def get_db():
         finally:
             await session.close()
 
+
 def get_sync_db():
     """Get synchronous database session (for scripts/CLI)"""
     from sqlalchemy.orm import Session
-    with Session(sync_engine) as session:
+    factory = _get_sync_session_local()
+    with factory() as session:
         try:
             yield session
             session.commit()
@@ -76,11 +143,13 @@ def get_sync_db():
         finally:
             session.close()
 
+
 def init_db():
     """Initialize database tables"""
     Base.metadata.create_all(bind=sync_engine)
 
+
 async def close_db():
     """Close database connections (for graceful shutdown)"""
-    await async_engine.dispose()
+    async_engine.dispose()
     sync_engine.dispose()
