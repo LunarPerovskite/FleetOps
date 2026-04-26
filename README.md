@@ -4,7 +4,7 @@
 
 FleetOps is an open-source governance platform that connects your existing AI agents (Claude Code, Codex, Copilot, Cursor, Devin, etc.) with human oversight at every stage. Organizations maintain full control while agents handle the heavy lifting.
 
-**Not just for customer service — for every team that uses AI agents:**
+**Built for every team that uses AI agents:**
 - 🏢 **Software Engineering** — Govern code generation, review, deployment
 - 📊 **Data Science** — Manage model training, experiments, data pipelines  
 - 🎨 **Creative Teams** — Oversee content generation, brand compliance
@@ -20,35 +20,24 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 
 ## 🚀 What FleetOps Does
 
-- **Human-in-the-Loop**: Insert human approval at any workflow stage
-- **Agent Hierarchy**: Organize agents with customizable levels and unlimited sub-agents
-- **Evidence Store**: Immutable, cryptographically signed audit trail
-- **Provider Agnostic**: Choose your own stack (Clerk, Auth0, Okta, Supabase, AWS, etc.)
-- **Multi-Channel**: Web, Slack, Discord, WhatsApp, Telegram, Email, Voice
-- **Custom Dashboards**: Build personalized dashboards with drag-and-drop widgets
-- **Audit Log**: Full event history with signature verification
-- **API Keys**: Programmatic access with scoped permissions
-- **Feature Flags**: Gradual rollouts and A/B testing
-- **Slack/Discord Bots**: Interactive approval buttons and notifications
-- **CLI Tool**: Command-line management (10 commands)
-- **One-Click Deploy**: Vercel, Railway, Render deploy buttons
-- **Webhooks**: Real-time event streaming with retry logic
-
-## 🚀 What FleetOps Does
-
-- **Human-in-the-Loop**: Insert human approval at any workflow stage
-- **Agent Hierarchy**: Organize agents with customizable levels and unlimited sub-agents
-- **Evidence Store**: Immutable, cryptographically signed audit trail
-- **Provider Agnostic**: Choose your own stack (Clerk, Auth0, Okta, Supabase, AWS, etc.)
-- **Multi-Channel**: Web, Slack, Discord, WhatsApp, Telegram, Email, Voice
-- **Custom Dashboards**: Build personalized dashboards with drag-and-drop widgets
-- **Audit Log**: Full event history with signature verification
-- **API Keys**: Programmatic access with scoped permissions
-- **Feature Flags**: Gradual rollouts and A/B testing
-- **Slack/Discord Bots**: Interactive approval buttons and notifications
-- **CLI Tool**: Command-line management (10 commands)
-- **One-Click Deploy**: Vercel, Railway, Render deploy buttons
-- **Webhooks**: Real-time event streaming with retry logic
+- **Human-in-the-Loop** — Insert human approval at any workflow stage
+- **Agent Hierarchy** — Organize agents with customizable levels and unlimited sub-agents
+- **Cost Tracking** — Real-time budget monitoring with per-agent attribution
+- **Budget Enforcement** — Hard stops when budgets are exceeded
+- **Evidence Store** — Immutable, cryptographically signed audit trail
+- **Provider Agnostic** — Choose your own stack (Clerk, Auth0, Okta, Supabase, AWS, etc.)
+- **Multi-Channel** — Web, Slack, Discord, WhatsApp, Telegram, Email, Voice
+- **Custom Dashboards** — Build personalized dashboards with drag-and-drop widgets
+- **Audit Log** — Full event history with signature verification
+- **API Keys** — Programmatic access with scoped permissions
+- **Feature Flags** — Gradual rollouts and A/B testing
+- **Slack/Discord Bots** — Interactive approval buttons and notifications
+- **CLI Tool** — Command-line management
+- **One-Click Deploy** — Vercel, Railway, Render deploy buttons
+- **Webhooks** — Real-time event streaming with retry logic
+- **Multi-Agent Swarms** — Orchestrate agent collectives with cost roll-up
+- **Circuit Breakers** — Automatic fallback when LLM providers fail
+- **Rate Limiting** — Redis-backed per-user and per-org limits
 
 ## 🏗️ Architecture
 
@@ -56,11 +45,13 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 ┌─────────────────────────────────────────┐
 │           React Frontend                │
 │  Dashboard | Tasks | Agents | Approvals │
+│  Analytics | LLM Usage | Search | Orgs  │
 └──────────────┬──────────────────────────┘
                │ WebSocket / HTTP
 ┌──────────────▼──────────────────────────┐
 │           FastAPI Backend               │
 │  Auth | Tasks | Agents | Events | WS    │
+│  Billing | Hierarchy | Audit | Search   │
 └──────────────┬──────────────────────────┘
                │
     ┌──────────┴──────────┐
@@ -86,14 +77,14 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 
 ## 📊 Stats
 
-- **17 Frontend Pages** — All connected to real API
+- **22 Frontend Pages** — All connected to real API
 - **24 API Routes** — Full CRUD for all resources
 - **18 Backend Services** — Task management, analytics, billing, webhooks
-- **11 Provider Adapters** — Auth, DB, hosting, monitoring, secrets
-- **9 Frontend Components** — Reusable UI building blocks
+- **20+ Provider Adapters** — Auth, DB, hosting, monitoring, secrets, LLM providers
+- **12 Frontend Components** — Reusable UI building blocks
 - **9 React Hooks** — State management, real-time, auth
-- **6 Test Suites** — Backend, frontend, security, integration
-- **75+ Git Commits** — Active development
+- **71+ Unit Tests** — Backend test coverage
+- **135+ Git Commits** — Active development
 
 ## 🚦 Quick Start
 
@@ -156,27 +147,26 @@ Configure via UI at `/providers` or edit `fleetops.yaml`.
 ## 💼 Use Cases
 
 ### Software Engineering Teams
-- **Code Generation**: Claude Code generates code → human review → approval → merge
-- **Code Review**: Copilot suggests changes → senior dev approves → merge
-- **Infrastructure**: Terraform plans → SRE approval → apply
-- **Deployments**: CI/CD pipeline → approval gate → production deploy
-- **Bug Triage**: AI categorizes bugs → team lead approves priority → assign
-- **Documentation**: AI generates docs → technical writer reviews → publish
+- **Code Generation** — AI generates code → human review → approval → merge
+- **Code Review** — AI suggests changes → senior dev approves → merge
+- **Infrastructure** — Terraform plans → SRE approval → apply
+- **Deployments** — CI/CD pipeline → approval gate → production deploy
+- **Bug Triage** — AI categorizes bugs → team lead approves priority → assign
 
 ### Data Science Teams
-- **Experiment Management**: AI runs experiments → data scientist reviews → publish results
-- **Model Training**: Training jobs → monitoring → human evaluation → deploy
-- **Data Pipelines**: ETL processes → data quality checks → approval → schedule
+- **Experiment Management** — AI runs experiments → data scientist reviews → publish results
+- **Model Training** — Training jobs → monitoring → human evaluation → deploy
+- **Data Pipelines** — ETL processes → data quality checks → approval → schedule
 
 ### Creative/Content Teams
-- **Content Generation**: AI drafts content → editor reviews → brand check → publish
-- **Video Production**: AI generates scripts → director approves → production
-- **Marketing Campaigns**: AI creates campaigns → marketing lead approves → launch
+- **Content Generation** — AI drafts content → editor reviews → brand check → publish
+- **Video Production** — AI generates scripts → director approves → production
+- **Marketing Campaigns** — AI creates campaigns → marketing lead approves → launch
 
 ### Operations Teams
-- **Workflow Automation**: AI processes tickets → human review → resolution
-- **Document Processing**: AI extracts data → verification → approval → record
-- **Quality Assurance**: AI runs tests → QA review → approval → release
+- **Workflow Automation** — AI processes tickets → human review → resolution
+- **Document Processing** — AI extracts data → verification → approval → record
+- **Quality Assurance** — AI runs tests → QA review → approval → release
 
 ## 🧪 Testing
 
@@ -185,9 +175,9 @@ Configure via UI at `/providers` or edit `fleetops.yaml`.
 cd backend
 pytest tests/ -v --cov=app
 
-# Frontend tests
+# Frontend build test
 cd frontend
-npm test
+npm run build
 
 # Environment validation
 python scripts/validate_env.py
@@ -203,16 +193,16 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## 💬 Community
 
+- [GitHub Discussions](https://github.com/LunarPerovskite/FleetOps/discussions)
 - [Discord](https://discord.gg/fleetops) (coming soon)
 - [Telegram](https://t.me/fleetops) (coming soon)
-- [GitHub Discussions](https://github.com/LunarPerovskite/FleetOps/discussions)
 
-## 🙏 Acknowledgments
+## 🙏 Credits
 
-Built with ❤️ by the FleetOps team and contributors.
+Built by **LunarPerovskite** with AI assistance. FleetOps is the result of human direction and AI-powered development working together.
 
-## 📞 Contact
+---
 
-- **Founder**: Juan Esteban Mosquera
-- **Email**: juanestebanmosquera@yahoo.com
-- **GitHub**: [@LunarPerovskite](https://github.com/LunarPerovskite)
+<p align="center">
+  <a href="https://github.com/LunarPerovskite">@LunarPerovskite</a> on GitHub
+</p>
