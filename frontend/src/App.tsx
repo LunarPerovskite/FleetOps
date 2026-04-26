@@ -31,6 +31,10 @@ import UseCases from './pages/UseCases'
 import Integrations from './pages/Integrations'
 
 import WorkflowTemplates from './pages/WorkflowTemplates'
+import Analytics from './pages/Analytics'
+import LLMUsage from './pages/LLMUsage'
+import Organizations from './pages/Organizations'
+import Teams from './pages/Teams'
 
 import LandingPage from './pages/LandingPage'
 
@@ -38,6 +42,8 @@ import Marketplace from './pages/Marketplace'
 import AgentInstances from './pages/AgentInstances'
 
 import { ErrorBoundary } from './components/ErrorBoundary'
+
+import Search from './pages/Search'
 
 function App() {
   return (
@@ -68,8 +74,13 @@ function App() {
                 <Route path="/use-cases" element={<UseCases />} />
                 <Route path="/integrations" element={<Integrations />} />
                 <Route path="/workflow-templates" element={<WorkflowTemplates />} />
-                <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/agent-instances" element={<AgentInstances />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/agent-instances" element={<AgentInstances />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/llm-usage" element={<LLMUsage />} />
+                <Route path="/organizations" element={<Organizations />} />
+                <Route path="/teams" element={<Teams />} />
               </Route>
             </Routes>
           </ErrorBoundary>

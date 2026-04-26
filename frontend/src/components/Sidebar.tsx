@@ -20,11 +20,17 @@ import {
   Puzzle,
   GitBranch,
   Store,
-  ServerCog
+  ServerCog,
+  BarChart3,
+  Building2,
+  Users2,
+  Search
 } from 'lucide-react'
 
 const navItems = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { path: '/search', icon: Search, label: 'Search' },
   { path: '/use-cases', icon: Lightbulb, label: 'Use Cases' },
   { path: '/integrations', icon: Puzzle, label: 'Integrations' },
   { path: '/workflow-templates', icon: GitBranch, label: 'Workflows' },
@@ -42,6 +48,9 @@ const navItems = [
   { path: '/providers', icon: Plug, label: 'Providers' },
   { path: '/billing', icon: CreditCard, label: 'Billing' },
   { path: '/api-keys', icon: KeyRound, label: 'API Keys' },
+  { path: '/llm-usage', icon: BarChart3, label: 'LLM Usage' },
+  { path: '/organizations', icon: Building2, label: 'Organizations' },
+  { path: '/teams', icon: Users2, label: 'Teams' },
   { path: '/settings', icon: Settings, label: 'Settings' },
   { path: '/admin', icon: ShieldAlert, label: 'Admin' },
 ]
