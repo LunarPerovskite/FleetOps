@@ -1,0 +1,224 @@
+# FleetOps App Flow Diagram
+
+## User Journey: Creating an AI Agent with Governance
+
+```
+┌──────────────┐
+│   LANDING    │
+│    PAGE      │
+└──────┬───────┘
+       │ Sign Up
+       ▼
+┌──────────────┐
+│   ONBOARD    │
+│   WIZARD     │
+│  (5 steps)   │
+└──────┬───────┘
+       │ Complete
+       ▼
+┌─────────────────────────────────────────────────┐
+│              MAIN DASHBOARD                        │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐           │
+│  │ Agents  │ │ Tasks   │ │ Budget  │           │
+│  │ Active  │ │ Queue   │ │ Used    │           │
+│  │   5     │ │   12    │ │  $234   │           │
+│  └────┬────┘ └────┬────┘ └─────────┘           │
+│       │           │                               │
+└───────┼───────────┼───────────────────────────────┘
+        │           │
+        ▼           ▼
+┌──────────────┐  ┌──────────────┐
+│  AGENT       │  │  TASK        │
+│  CREATION    │  │  CREATION    │
+│              │  │              │
+│  ┌────────┐  │  │  ┌────────┐  │
+│  │ Choose │  │  │  │ Select │  │
+│  │ Claude │  │  │  │ Agent  │  │
+│  │ GPT-4  │  │  │  │  +     │  │
+│  │ Gemini │  │  │  │ Prompt │  │
+│  └────┬───┘  │  │  └────┬───┘  │
+│       │      │  │       │      │
+│  ┌────▼───┐  │  │  ┌────▼───┐  │
+│  │Config  │  │  │  │ Budget │  │
+│  │Model   │  │  │  │ Limit  │  │
+│  │Budget  │  │  │  │ $5.00  │  │
+│  │Max Sub │  │  │  └────┬───┘  │
+│  │Agents  │  │  │       │      │
+│  └────┬───┘  │  │  ┌────▼───┐  │
+│       │      │  │  │ Submit │  │
+│  ┌────▼───┐  │  │  │        │  │
+│  │ Create │  │  │  └────┬───┘  │
+│  │        │  │  │       │      │
+│  └────┬───┘  │  │       ▼      │
+└───────┼──────┘  └──────────────┘
+        │
+        ▼
+┌─────────────────────────────────────────────────┐
+│           AGENT RUNS TASK                        │
+│                                                   │
+│   Agent: "Claude Code"                            │
+│   Task: "Fix bug in auth.py"                      │
+│   Input Tokens: 1,234                             │
+│   Output Tokens: 567                              │
+│   Estimated Cost: $0.08                           │
+│   Risk: LOW (auto-approved)                      │
+│                                                   │
+│   ┌─────────────────────────────────────────┐  │
+│   │  AGENT EXECUTES (autonomous)             │  │
+│   │  • Reads files                            │  │
+│   │  • Makes edits                            │  │
+│   │  • Runs tests                             │  │
+│   │  • Cost tracked per step                  │  │
+│   └─────────────────────────────────────────┘  │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   │ IF cost > $0.50 OR risk=HIGH
+                   │
+                   ▼
+┌─────────────────────────────────────────────────┐
+│         HUMAN APPROVAL REQUIRED                    │
+│                                                   │
+│   ┌─────────┐  ┌─────────┐  ┌─────────┐        │
+│   │ APPROVE │  │ REJECT  │  │ESCALATE │        │
+│   │  ✅     │  │   ❌    │  │   ⬆️    │        │
+│   └────┬────┘  └─────────┘  └─────────┘        │
+│        │                                          │
+│        │                                          │
+│        ▼                                          │
+│   ┌─────────────────────────────────────────┐  │
+│   │  APPROVED: Agent continues execution     │  │
+│   │  Budget deducted: $0.08                  │  │
+│   │  Audit log: immutable entry created    │  │
+│   └─────────────────────────────────────────┘  │
+│                                                   │
+└─────────────────────────────────────────────────┘
+
+## Data Flow: Cost Tracking
+
+```
+User Request
+    │
+    ▼
+┌─────────────┐
+│ FleetOps    │
+│ API Gateway │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐    ┌─────────────┐
+│ Usage       │───▶│ Cost        │
+│ Extractor   │    │ Tracker     │
+│ (Tokens)    │    │ (Pricing)   │
+└──────┬──────┘    └──────┬──────┘
+       │                  │
+       ▼                  ▼
+┌─────────────┐    ┌─────────────┐
+│ Budget      │◀───│ Budget      │
+│ Enforcer    │    │ Database    │
+│ (Check)     │    │ (Record)    │
+└──────┬──────┘    └─────────────┘
+       │
+       ├────── Budget OK ────▶ Proceed to LLM
+       │
+       └────── Budget Exceeded ───▶ Return 402 Payment Required
+```
+
+## Hierarchy & Permission Flow
+
+```
+┌─────────────────────────────────────────┐
+│          ORGANIZATION                    │
+│         "Acme Corp"                      │
+│              │                            │
+│     ┌────────┴────────┐                  │
+│     ▼                 ▼                  │
+│  ┌───────┐        ┌────────┐             │
+│  │  CEO  │        │  CTO   │             │
+│  │ Budget│        │ Budget │             │
+│  │$1000/d│        │ $500/d │             │
+│  └───┬───┘        └───┬────┘             │
+│      │                │                   │
+│  ┌───┴───┐      ┌────┴────┐              │
+│  ▼       ▼      ▼         ▼              │
+│ ┌──┐   ┌──┐  ┌──┐      ┌──┐             │
+│ │VP│   │VP│  │Lead│    │Lead│           │
+│ │  │   │  │  │Eng │    │AI  │           │
+│ └──┘   └──┘  └──┘      └──┘             │
+│  │      │     │         │                 │
+│  ▼      ▼     ▼         ▼                 │
+│ ┌──┐  ┌──┐  ┌──┐    ┌──┐                │
+│ │Snr│ │Snr│ │Eng│   │Eng│               │
+│ │Dev│ │Dev│ │   │   │   │               │
+│ └──┘  └──┘  └──┘    └──┘                │
+│  │     │      │       │                   │
+│  ▼     ▼      ▼       ▼                   │
+│ ┌──┐  ┌──┐  ┌──┐   ┌──┐                 │
+│ │AI │ │AI │ │AI │  │AI │                │
+│ │Ag1│ │Ag2│ │Ag3│  │Ag4│                │
+│ │$10│ │$10│ │$5 │  │$5 │                │
+│ └──┘  └──┘  └──┘   └──┘                 │
+│                                           │
+│ Higher Level = More Authority             │
+│ Budget rolls up the tree                  │
+│ Cost attribution per agent                │
+└─────────────────────────────────────────┘
+```
+
+## WebSocket Real-Time Flow
+
+```
+Browser                          FleetOps                          Agent
+   │                                │                                │
+   │  ┌─────────────────────┐      │                                │
+   │  │ WebSocket Connect   │─────▶│                                │
+   │  │ wss://fleetops/ws   │      │                                │
+   │  └─────────────────────┘      │                                │
+   │                                │                                │
+   │         ┌──────────────┐       │         ┌──────────────┐      │
+   │         │ Real-Time    │◀──────│◀────────│ Task Update  │      │
+   │         │ Dashboard    │       │         │ (JSON)       │      │
+   │         └──────────────┘       │         └──────────────┘      │
+   │                                │                                │
+   │  ┌─────────────────────┐       │         ┌──────────────┐      │
+   │  │ Approval Request    │◀──────│◀────────│ Needs Human  │─────▶│
+   │  │ (Notification)      │       │         │ Approval     │      │
+   │  └─────────────────────┘       │         └──────────────┘      │
+   │         │                      │                                │
+   │         ▼                      │                                │
+   │  ┌─────────────────────┐       │                                │
+   │  │ Approve/Reject      │───────▶────────▶ Agent Continues    │
+   │  └─────────────────────┘       │                                │
+```
+
+## Multi-Agent Swarm Orchestration
+
+```
+Human Manager
+     │
+     │ Create Swarm "Code Review Team"
+     │
+     ▼
+┌─────────────────────────────────────────┐
+│        SWARM ORCHESTRATOR                │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐  │
+│  │ Agent 1 │ │ Agent 2 │ │ Agent 3 │  │
+│  │ Review  │ │ Test    │ │ Docs    │  │
+│  │ Style   │ │ Coverage│ │ Update  │  │
+│  └────┬────┘ └────┬────┘ └────┬────┘  │
+│       │           │           │        │
+│       └───────────┼───────────┘        │
+│                   ▼                     │
+│         ┌─────────────┐                │
+│         │ AGGREGATOR  │                │
+│         │ Combine     │                │
+│         │ Results     │                │
+│         └──────┬──────┘                │
+│                │                        │
+│                ▼                        │
+│         ┌─────────────┐                │
+│         │ SUMMARY     │                │
+│         │ Report to   │                │
+│         │ Human       │                │
+│         └─────────────┘                │
+└─────────────────────────────────────────┘
+```
