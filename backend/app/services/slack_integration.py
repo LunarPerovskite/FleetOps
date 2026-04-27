@@ -102,6 +102,96 @@ class SlackIntegration:
                     }
                 },
                 {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Approval Scope:*\nChoose how long this approval lasts"
+                    },
+                    "accessory": {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select scope"
+                        },
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "✅ Approve Once"
+                                },
+                                "value": "once"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "📅 This Session"
+                                },
+                                "value": "session"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "🏢 This Workspace"
+                                },
+                                "value": "workspace"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "🌐 Always"
+                                },
+                                "value": "always"
+                            }
+                        ],
+                        "action_id": f"scope_{approval_id}"
+                    }
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"*Approval Scope:*\nChoose how long this approval lasts"
+                    },
+                    "accessory": {
+                        "type": "static_select",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Select scope"
+                        },
+                        "options": [
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "✅ Approve Once"
+                                },
+                                "value": "once"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "📅 This Session"
+                                },
+                                "value": "session"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "🏢 This Workspace"
+                                },
+                                "value": "workspace"
+                            },
+                            {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "🌐 Always"
+                                },
+                                "value": "always"
+                            }
+                        ],
+                        "action_id": f"scope_{approval_id}"
+                    }
+                },
+                {
                     "type": "actions",
                     "elements": [
                         {
@@ -260,19 +350,30 @@ class SlackIntegration:
         approval_id = action.get("value", "")
         user_id = payload.get("user", {}).get("id")
         
+        # Get selected scope from state if available
+        state = payload.get("state", {})
+        selected_scope = "once"  # default
+        if state and "values" in state:
+            for block_id, block_values in state["values"].items():
+                for action_key, action_data in block_values.items():
+                    if action_key.startswith("scope_"):
+                        selected_scope = action_data.get("selected_option", {}).get("value", "once")
+        
         # Parse action type
         if action_id.startswith("approve_"):
             return {
                 "approval_id": approval_id,
                 "decision": "approved",
                 "approver_id": user_id,
-                "message": "Approved via Slack"
+                "scope": selected_scope,
+                "message": f"Approved via Slack (scope: {selected_scope})"
             }
         elif action_id.startswith("reject_"):
             return {
                 "approval_id": approval_id,
                 "decision": "rejected",
                 "approver_id": user_id,
+                "scope": selected_scope,
                 "message": "Rejected via Slack"
             }
         elif action_id.startswith("details_"):
@@ -280,12 +381,23 @@ class SlackIntegration:
                 "approval_id": approval_id,
                 "decision": "view_details",
                 "approver_id": user_id,
+                "scope": selected_scope,
                 "message": "Viewing details"
+            }
+        elif action_id.startswith("scope_"):
+            # Scope was selected (standalone action)
+            return {
+                "approval_id": approval_id,
+                "decision": "scope_selected",
+                "scope": selected_scope,
+                "approver_id": user_id,
+                "message": f"Scope selected: {selected_scope}"
             }
         
         return {
             "approval_id": approval_id,
             "decision": "unknown",
+            "scope": selected_scope,
             "approver_id": user_id,
             "message": "Unknown action"
         }

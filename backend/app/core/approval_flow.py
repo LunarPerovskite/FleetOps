@@ -44,6 +44,14 @@ class ApprovalRequirement(Enum):
     ON_EXTERNAL_ACTION = "on_external_action"
 
 
+class ApprovalScope(Enum):
+    """Scope of an approval decision"""
+    ONCE = "once"           # Approve only this specific action
+    SESSION = "session"     # Approve for this agent session (until session ends)
+    WORKSPACE = "workspace" # Approve for this workspace/project
+    ALWAYS = "always"       # Always approve this action type (use with caution)
+
+
 class ApprovalFlow:
     """Orchestrates human-in-the-loop approval for agent tasks"""
     
@@ -220,9 +228,18 @@ class ApprovalFlow:
         approval_id: str,
         approver_id: str,
         decision: str = "approve",
-        comments: Optional[str] = None
+        comments: Optional[str] = None,
+        scope: ApprovalScope = ApprovalScope.ONCE
     ) -> Dict[str, Any]:
-        """Human approves or rejects a pending approval"""
+        """Human approves or rejects a pending approval
+        
+        Args:
+            approval_id: The approval request ID
+            approver_id: Who is approving
+            decision: "approve" or "reject"
+            comments: Optional comments
+            scope: How long the approval lasts (once, session, workspace, always)
+        """
         
         event = self._pending_approvals.get(approval_id)
         if not event:
@@ -236,6 +253,7 @@ class ApprovalFlow:
             "status": decision,
             "approver_id": approver_id,
             "comments": comments,
+            "scope": scope.value,
             "resolved_at": datetime.utcnow().isoformat()
         }
         
@@ -247,16 +265,18 @@ class ApprovalFlow:
             action=f"approval_{decision}",
             details={
                 "approval_id": approval_id,
-                "comments": comments
+                "comments": comments,
+                "scope": scope.value
             }
         )
         
         logger.info(
-            f"Approval {decision}: {approval_id} by {approver_id}",
+            f"Approval {decision}: {approval_id} by {approver_id} (scope: {scope.value})",
             extra={
                 "approval_id": approval_id,
                 "decision": decision,
-                "approver_id": approver_id
+                "approver_id": approver_id,
+                "scope": scope.value
             }
         )
         
