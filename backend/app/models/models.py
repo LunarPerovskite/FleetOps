@@ -61,6 +61,7 @@ class Team(Base):
     organization = relationship("Organization", back_populates="teams")
     members = relationship("User", back_populates="team")
     agents = relationship("Agent", back_populates="team")
+    shared_agents = relationship("AgentTeamAssignment", back_populates="team", cascade="all, delete-orphan")
 
 class User(Base):
     __tablename__ = "users"
@@ -88,11 +89,13 @@ class Agent(Base):
     level = Column(Enum(AgentLevel), default=AgentLevel.JUNIOR)
     capabilities = Column(JSON, default=list)
     org_id = Column(String(36), ForeignKey("organizations.id"))
-    team_id = Column(String(36), ForeignKey("teams.id"))
+    team_id = Column(String(36), ForeignKey("teams.id"))  # Primary/home team
     parent_agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
     status = Column(String(50), default="active")
     cost_to_date = Column(Float, default=0.0)
     max_sub_agents = Column(Integer, nullable=True)  # null = unlimited sub-agents, any number = limit
+    is_shared = Column(Boolean, default=False)  # Can be shared across teams
+    shared_budget_type = Column(String(20), default="owner")  # "owner", "split", "requester"
     created_at = Column(DateTime, default=datetime.utcnow)
     
     organization = relationship("Organization", back_populates="agents")
@@ -101,6 +104,26 @@ class Agent(Base):
     sub_agents = relationship("Agent", backref="parent", remote_side=[id])
     prompts = relationship("PromptVersion", back_populates="agent")
     llm_usage = relationship("LLMUsage", back_populates="agent")
+    shared_assignments = relationship("AgentTeamAssignment", back_populates="agent", cascade="all, delete-orphan")
+
+class AgentTeamAssignment(Base):
+    """Links agents to multiple teams (shared agents)"""
+    __tablename__ = "agent_team_assignments"
+    
+    id = Column(String(36), primary_key=True)
+    agent_id = Column(String(36), ForeignKey("agents.id"), nullable=False)
+    team_id = Column(String(36), ForeignKey("teams.id"), nullable=False)
+    org_id = Column(String(36), ForeignKey("organizations.id"), nullable=False)
+    assigned_by = Column(String(36), ForeignKey("users.id"))
+    budget_allocation = Column(Float, default=0.0)  # % of agent's budget for this team
+    usage_limit = Column(Float, nullable=True)  # Max $ this team can spend
+    current_usage = Column(Float, default=0.0)  # Track usage per team
+    permissions = Column(JSON, default=list)  # ["read", "execute", "manage"]
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    agent = relationship("Agent", back_populates="shared_assignments")
+    team = relationship("Team", back_populates="shared_agents")
 
 class Task(Base):
     __tablename__ = "tasks"

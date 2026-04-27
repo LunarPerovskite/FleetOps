@@ -193,6 +193,16 @@ export const billingAPI = {
   tiers: () => api.get('/billing/tiers'),
 };
 
+// Shared Agents
+export const sharedAgentsAPI = {
+  getTeamShared: (teamId: string) => api.get(`/teams/${teamId}/shared-agents`),
+  shareToTeam: (teamId: string, data: any) => api.post(`/teams/${teamId}/shared-agents`, data),
+  update: (teamId: string, assignmentId: string, data: any) => api.put(`/teams/${teamId}/shared-agents/${assignmentId}`, data),
+  remove: (teamId: string, assignmentId: string) => api.delete(`/teams/${teamId}/shared-agents/${assignmentId}`),
+  getAgentTeams: (agentId: string) => api.get(`/agents/${agentId}/shared-teams`),
+  getOrgShared: () => api.get('/orgs/shared-agents'),
+};
+
 export { api, api as default, api as apiClient };
 
 // WebSocket

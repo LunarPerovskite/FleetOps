@@ -45,6 +45,8 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 
 import Search from './pages/Search'
 
+import SharedAgents from './pages/SharedAgents'
+
 function App() {
   return (
     <ThemeProvider>
@@ -81,6 +83,7 @@ function App() {
                 <Route path="/llm-usage" element={<LLMUsage />} />
                 <Route path="/organizations" element={<Organizations />} />
                 <Route path="/teams" element={<Teams />} />
+                <Route path="/shared-agents" element={<SharedAgents />} />
               </Route>
             </Routes>
           </ErrorBoundary>

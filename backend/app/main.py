@@ -16,7 +16,7 @@ from app.api.routes import (
     events, dashboard, customer_service, hierarchy, providers, 
     audit, dashboard_builder as db_builder, billing, webhooks, 
     agent_execution, agent_instances, multi_agent, llm_providers,
-    openwebui, pricing, search, websocket, health
+    openwebui, pricing, search, websocket, health, shared_agents
 )
 
 from app.core.security_middleware import SecurityMiddleware
@@ -90,6 +90,8 @@ app.include_router(pricing.router, prefix="/api/v1", tags=["pricing"])
 app.include_router(search.router, prefix="/api/v1", tags=["search"])
 app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
+
+app.include_router(shared_agents.router, prefix="/api/v1", tags=["shared-agents"])
 
 @app.get("/health")
 async def health_check():

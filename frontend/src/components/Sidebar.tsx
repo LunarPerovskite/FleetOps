@@ -24,7 +24,8 @@ import {
   BarChart3,
   Building2,
   Users2,
-  Search
+  Search,
+  Share2
 } from 'lucide-react'
 
 const navItems = [
@@ -51,6 +52,7 @@ const navItems = [
   { path: '/llm-usage', icon: BarChart3, label: 'LLM Usage' },
   { path: '/organizations', icon: Building2, label: 'Organizations' },
   { path: '/teams', icon: Users2, label: 'Teams' },
+  { path: '/shared-agents', icon: Share2, label: 'Shared Agents' },
   { path: '/settings', icon: Settings, label: 'Settings' },
   { path: '/admin', icon: ShieldAlert, label: 'Admin' },
 ]
