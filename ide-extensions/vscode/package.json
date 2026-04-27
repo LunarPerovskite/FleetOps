@@ -1,0 +1,118 @@
+{
+    "name": "fleetops",
+    "displayName": "FleetOps — AI Agent Governance",
+    "description": "Universal approval and cost tracking for AI agents in VS Code, Cursor, and any editor",
+    "version": "0.1.0",
+    "publisher": "fleetops",
+    "license": "MIT",
+    "engines": {
+        "vscode": "^>=1.74.0"
+    },
+    "categories": [
+        "Other",
+        "Machine Learning",
+        "Testing"
+    ],
+    "keywords": [
+        "ai",
+        "agents",
+        "governance",
+        "approval",
+        "cost-tracking",
+        "claude",
+        "copilot",
+        "cursor"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "fleetops.showApprovals",
+                "title": "Show Pending Approvals",
+                "category": "FleetOps",
+                "icon": "$(warning)"
+            },
+            {
+                "command": "fleetops.approve",
+                "title": "Approve Request",
+                "category": "FleetOps"
+            },
+            {
+                "command": "fleetops.reject",
+                "title": "Reject Request",
+                "category": "FleetOps"
+            },
+            {
+                "command": "fleetops.configure",
+                "title": "Configure FleetOps",
+                "category": "FleetOps",
+                "icon": "$(gear)"
+            },
+            {
+                "command": "fleetops.checkBeforeExecute",
+                "title": "Check Before Execute",
+                "category": "FleetOps"
+            }
+        ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "fleetops.showApprovals",
+                    "when": "fleetops.enabled"
+                }
+            ]
+        },
+        "configuration": {
+            "title": "FleetOps",
+            "properties": {
+                "fleetops.apiUrl": {
+                    "type": "string",
+                    "default": "http://localhost:8000",
+                    "description": "FleetOps API URL"
+                },
+                "fleetops.apiKey": {
+                    "type": "string",
+                    "default": "",
+                    "description": "FleetOps API Key (optional)"
+                },
+                "fleetops.agentType": {
+                    "type": "string",
+                    "default": "vscode_extension",
+                    "description": "Agent type identifier"
+                },
+                "fleetops.autoApproveSafe": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Auto-approve safe actions"
+                },
+                "fleetops.showNotifications": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show FleetOps notifications"
+                },
+                "fleetops.interceptTerminals": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Monitor terminal commands"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "lint": "eslint src --ext ts"
+    },
+    "devDependencies": {
+        "@types/vscode": "^>=1.74.0",
+        "@types/node": "20.x",
+        "typescript": "^5.0.0",
+        "eslint": "^8.0.0",
+        "@typescript-eslint/eslint-plugin": "^6.0.0",
+        "@typescript-eslint/parser": "^6.0.0"
+    }
+}
