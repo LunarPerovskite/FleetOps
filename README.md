@@ -32,12 +32,19 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 - **API Keys** — Programmatic access with scoped permissions
 - **Feature Flags** — Gradual rollouts and A/B testing
 - **Slack/Discord Bots** — Interactive approval buttons and notifications
-- **CLI Tool** — Command-line management
+- **CLI Tool** — Command-line management with colorful output
+- **Python Client Library** — `fleetops-cli` package for programmatic access
+- **MCP Server** — Model Context Protocol for any MCP-compatible agent
 - **One-Click Deploy** — Vercel, Railway, Render deploy buttons
 - **Webhooks** — Real-time event streaming with retry logic
 - **Multi-Agent Swarms** — Orchestrate agent collectives with cost roll-up
 - **Circuit Breakers** — Automatic fallback when LLM providers fail
 - **Rate Limiting** — Redis-backed per-user and per-org limits
+- **Danger Detection** — Automatic risk scoring for agent actions
+- **Hierarchy Escalation** — Escalate approvals to managers based on risk
+- **Usage Extraction** — Automatic token/usage tracking across all LLM providers
+- **Media Generation** — Cost tracking for DALL-E, Runway, ElevenLabs
+- **Connection Layer** — Provider-agnostic LLM connection management
 
 ## 🏗️ Architecture
 
@@ -52,6 +59,7 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 │           FastAPI Backend               │
 │  Auth | Tasks | Agents | Events | WS    │
 │  Billing | Hierarchy | Audit | Search   │
+│  Cost Tracking | Circuit Breakers       │
 └──────────────┬──────────────────────────┘
                │
     ┌──────────┴──────────┐
@@ -59,6 +67,12 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 ┌─────────┐         ┌──────────┐
 │PostgreSQL│         │  Redis   │
 └─────────┘         └──────────┘
+    │
+    ▼
+┌─────────────┐   ┌──────────────┐
+│ CLI Tool    │   │ MCP Server   │
+│ Client Lib  │   │ (MCP agents) │
+└─────────────┘   └──────────────┘
 ```
 
 ## 🛠️ Tech Stack
@@ -74,16 +88,18 @@ FleetOps is an open-source governance platform that connects your existing AI ag
 | **Monitoring** | Sentry, Datadog, CloudWatch adapters |
 | **Bots** | Slack SDK, Discord.py |
 | **CLI** | Click (Python) |
+| **Client Library** | `fleetops-cli` (async/sync Python) |
+| **MCP** | Model Context Protocol server |
 
 ## 📊 Stats
 
 - **22 Frontend Pages** — All connected to real API
 - **24 API Routes** — Full CRUD for all resources
-- **18 Backend Services** — Task management, analytics, billing, webhooks
-- **20+ Provider Adapters** — Auth, DB, hosting, monitoring, secrets, LLM providers
+- **18+ Backend Services** — Task management, analytics, billing, webhooks, circuit breakers, rate limiting, cost tracking
+- **20+ Provider Adapters** — Auth, DB, hosting, monitoring, secrets, LLM providers, media generation
 - **12 Frontend Components** — Reusable UI building blocks
 - **9 React Hooks** — State management, real-time, auth
-- **71+ Unit Tests** — Backend test coverage
+- **216+ Unit Tests** — Full backend test coverage with CI/CD
 - **135+ Git Commits** — Active development
 
 ## 🚦 Quick Start
@@ -173,7 +189,10 @@ Configure via UI at `/providers` or edit `fleetops.yaml`.
 ```bash
 # Backend tests
 cd backend
-pytest tests/ -v --cov=app
+pytest tests/unit/ -v --tb=short
+
+# With coverage
+pytest tests/unit/ -v --cov=app --cov-report=xml
 
 # Frontend build test
 cd frontend
@@ -182,6 +201,88 @@ npm run build
 # Environment validation
 python scripts/validate_env.py
 ```
+
+## 🤖 MCP Server
+
+Connect any MCP-compatible agent to FleetOps governance:
+
+```bash
+cd mcp-server
+pip install -e .
+
+# Run the MCP server
+python fleetops-mcp.py
+```
+
+**Available MCP Tools:**
+- `request_approval` — Submit actions for human approval
+- `approve_request` — Approve pending requests
+- `reject_request` — Reject with feedback
+- `get_cost_status` — Check budget usage
+- `check_danger` — Score action risk level
+- `track_usage` — Log LLM API usage
+- `get_hierarchy` — View agent hierarchy
+- `escalate_request` — Escalate to higher authority
+
+## 🐍 Python Client
+
+```bash
+pip install fleetops-cli
+```
+
+```python
+import asyncio
+from fleetops_cli import FleetOpsClient
+
+async def main():
+    async with FleetOpsClient() as client:
+        # Request approval for an action
+        result = await client.request_approval(
+            agent_id="codex-001",
+            action="deploy",
+            arguments={"env": "production"}
+        )
+        print(f"Approval status: {result['status']}")
+
+asyncio.run(main())
+```
+
+## 💻 CLI Tool
+
+Command-line management for FleetOps:
+
+```bash
+cd backend
+pip install -r requirements.txt
+
+# Check system status
+python cli.py status
+
+# List pending approvals
+python cli.py list
+
+# Approve a request
+python cli.py approve REQUEST-123 --scope all
+
+# Reject with comments
+python cli.py reject REQUEST-123 -c "Needs more testing"
+
+# View agent status
+python cli.py agents
+
+# Check costs
+python cli.py costs --breakdown
+
+# View configuration
+python cli.py config
+```
+
+**CLI Features:**
+- Color-coded output (red/yellow/green for danger levels)
+- Interactive approval prompts
+- Budget progress bars
+- Agent status dashboard
+- Cost breakdown tables
 
 ## 🤝 Contributing
 
