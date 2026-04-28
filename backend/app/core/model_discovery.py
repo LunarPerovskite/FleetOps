@@ -1,16 +1,13 @@
 """Dynamic Model Discovery for FleetOps
 
-Discovers models from various providers dynamically:
-- OpenRouter (aggregates 100+ models)
+Fetches REAL models from live APIs:
+- OpenRouter (100+ models from all providers)
 - Ollama (local models)
-- OpenAI (list models API)
+- OpenAI API (list models)
 - Anthropic (static list)
-- Custom providers
+- Each provider's API
 
-Users can:
-- Browse all available models
-- Add custom models
-- Search by capability, cost, provider
+Users see the ACTUAL latest models available.
 """
 
 from typing import Dict, Any, Optional, List, Callable, Set
@@ -105,7 +102,17 @@ class DiscoveredModel:
 
 
 class OpenRouterDiscovery:
-    """Discover models from OpenRouter API"""
+    """Discover REAL models from OpenRouter API
+    
+    OpenRouter aggregates 100+ models from all providers:
+    - OpenAI (GPT-4o, o1, etc.)
+    - Anthropic (Claude 3.7, etc.)
+    - Google (Gemini 2.0, etc.)
+    - Meta (Llama 3, etc.)
+    - Mistral, DeepSeek, Cohere, and more
+    
+    Returns live pricing, context lengths, and metadata.
+    """
     
     API_URL = "https://openrouter.ai/api/v1/models"
     

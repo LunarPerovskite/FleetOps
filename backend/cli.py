@@ -499,8 +499,8 @@ from app.core.model_registry import model_registry
 from app.core.agent_model_manager import agent_model_manager
 
 def main():
-    # Load built-in models
-    model_registry._load_builtin_models()
+    # Registry starts empty - models come from live discovery
+    # Users must run `fleetops models --discover` to populate
     app()
 
 if __name__ == "__main__":

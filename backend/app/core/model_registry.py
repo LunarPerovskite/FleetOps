@@ -1,11 +1,14 @@
 """LLM Model Registry for FleetOps
 
 Central registry for all LLM models across all providers.
-Handles:
-- Model discovery and metadata
-- Provider-to-model mapping
-- Cost and capability tracking
-- Health status monitoring
+
+IMPORTANT: This registry starts EMPTY. All models come from
+live discovery APIs (OpenRouter, provider APIs). No hardcoded
+models that go stale.
+
+To get models:
+1. Run discovery: await discover_models()
+2. Or register manually: model_registry.register(model)
 """
 
 from typing import Dict, Any, Optional, List, Callable
@@ -46,9 +49,9 @@ class ModelTier(str, Enum):
 
 @dataclass
 class LLMModel:
-    """Represents a single LLM model"""
-    id: str                          # "gpt-4o", "claude-3-5-sonnet"
-    name: str                        # "GPT-4o", "Claude 3.5 Sonnet"
+    """Represents a single LLM model - always from live discovery"""
+    id: str                          # "openai/gpt-4o", "anthropic/claude-3-7-sonnet"
+    name: str                        # "GPT-4o", "Claude 3.7 Sonnet"
     provider: str                    # "openai", "anthropic", "gemini"
     provider_model_id: str           # Provider's internal ID
     
@@ -78,6 +81,11 @@ class LLMModel:
     last_used: Optional[datetime] = None
     request_count: int = 0
     
+    # Discovery metadata
+    discovered_from: str = ""         # "openrouter", "openai_api", "manual"
+    discovered_at: Optional[datetime] = None
+    raw_pricing: Optional[Dict] = None
+    
     def estimate_cost(self, input_tokens: int, output_tokens: int,
                      cached_tokens: int = 0) -> float:
         """Estimate cost for a request in USD"""
@@ -102,6 +110,7 @@ class LLMModel:
             "id": self.id,
             "name": self.name,
             "provider": self.provider,
+            "provider_model_id": self.provider_model_id,
             "capabilities": [c.value for c in self.capabilities],
             "cost_per_1m_tokens": {
                 "input": self.input_cost_per_1m,
@@ -114,212 +123,27 @@ class LLMModel:
                 "max_total": self.max_total_tokens
             },
             "tier": self.tier.value,
+            "description": self.description,
             "is_available": self.is_available,
             "average_latency_ms": self.average_latency_ms,
-            "supports_streaming": self.supports_streaming
+            "supports_streaming": self.supports_streaming,
+            "discovered_from": self.discovered_from,
+            "discovered_at": self.discovered_at.isoformat() if self.discovered_at else None
         }
 
 
 class ModelRegistry:
-    """Central registry for all LLM models"""
+    """Central registry for all LLM models - starts empty, populated by discovery"""
     
     def __init__(self):
         self._models: Dict[str, LLMModel] = {}
         self._provider_models: Dict[str, List[str]] = {}  # provider -> [model_ids]
-        self._capability_models: Dict[ModelCapability, List[str]] = {}  # cap -> [model_ids]
-        self._hooks: List[Callable] = []  # Change hooks
-        self._load_builtin_models()
-    
-    def _load_builtin_models(self):
-        """Load all known models with pricing"""
-        
-        # OpenAI models
-        self.register(LLMModel(
-            id="gpt-4o",
-            name="GPT-4o",
-            provider="openai",
-            provider_model_id="gpt-4o",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.FUNCTION_CALLING,
-                ModelCapability.JSON_MODE, ModelCapability.STREAMING
-            ],
-            input_cost_per_1m=2.50,
-            output_cost_per_1m=10.00,
-            cached_input_cost_per_1m=1.25,
-            max_input_tokens=128000,
-            max_output_tokens=16384,
-            max_total_tokens=128000,
-            tier=ModelTier.PREMIUM,
-            description="OpenAI's flagship multimodal model"
-        ))
-        
-        self.register(LLMModel(
-            id="gpt-4o-mini",
-            name="GPT-4o Mini",
-            provider="openai",
-            provider_model_id="gpt-4o-mini",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.FUNCTION_CALLING,
-                ModelCapability.JSON_MODE, ModelCapability.STREAMING
-            ],
-            input_cost_per_1m=0.15,
-            output_cost_per_1m=0.60,
-            cached_input_cost_per_1m=0.075,
-            max_input_tokens=128000,
-            max_output_tokens=16384,
-            tier=ModelTier.CHEAP,
-            description="Fast, affordable model for most tasks"
-        ))
-        
-        self.register(LLMModel(
-            id="gpt-4-turbo",
-            name="GPT-4 Turbo",
-            provider="openai",
-            provider_model_id="gpt-4-turbo-preview",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.FUNCTION_CALLING, ModelCapability.JSON_MODE,
-                ModelCapability.STREAMING, ModelCapability.LONG_CONTEXT
-            ],
-            input_cost_per_1m=10.00,
-            output_cost_per_1m=30.00,
-            max_input_tokens=128000,
-            max_output_tokens=4096,
-            tier=ModelTier.ULTRA,
-            description="Legacy high-performance model"
-        ))
-        
-        self.register(LLMModel(
-            id="o1-preview",
-            name="o1 Preview",
-            provider="openai",
-            provider_model_id="o1-preview",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.REASONING,
-                ModelCapability.CODE, ModelCapability.STREAMING
-            ],
-            input_cost_per_1m=15.00,
-            output_cost_per_1m=60.00,
-            max_input_tokens=128000,
-            max_output_tokens=32768,
-            tier=ModelTier.ULTRA,
-            description="Reasoning-focused model for complex tasks"
-        ))
-        
-        # Anthropic models
-        self.register(LLMModel(
-            id="claude-3-5-sonnet",
-            name="Claude 3.5 Sonnet",
-            provider="anthropic",
-            provider_model_id="claude-3-5-sonnet-20241022",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.FUNCTION_CALLING,
-                ModelCapability.STREAMING, ModelCapability.LONG_CONTEXT
-            ],
-            input_cost_per_1m=3.00,
-            output_cost_per_1m=15.00,
-            max_input_tokens=200000,
-            max_output_tokens=8192,
-            max_total_tokens=200000,
-            tier=ModelTier.PREMIUM,
-            description="Best balance of performance and cost"
-        ))
-        
-        self.register(LLMModel(
-            id="claude-3-opus",
-            name="Claude 3 Opus",
-            provider="anthropic",
-            provider_model_id="claude-3-opus-20240229",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.FUNCTION_CALLING,
-                ModelCapability.STREAMING, ModelCapability.LONG_CONTEXT
-            ],
-            input_cost_per_1m=15.00,
-            output_cost_per_1m=75.00,
-            max_input_tokens=200000,
-            max_output_tokens=4096,
-            tier=ModelTier.ULTRA,
-            description="Most capable Anthropic model"
-        ))
-        
-        self.register(LLMModel(
-            id="claude-3-haiku",
-            name="Claude 3 Haiku",
-            provider="anthropic",
-            provider_model_id="claude-3-haiku-20240307",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.STREAMING
-            ],
-            input_cost_per_1m=0.25,
-            output_cost_per_1m=1.25,
-            max_input_tokens=200000,
-            max_output_tokens=4096,
-            tier=ModelTier.CHEAP,
-            description="Fastest Claude model for simple tasks"
-        ))
-        
-        # Gemini models
-        self.register(LLMModel(
-            id="gemini-1.5-pro",
-            name="Gemini 1.5 Pro",
-            provider="gemini",
-            provider_model_id="gemini-1.5-pro",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.FUNCTION_CALLING,
-                ModelCapability.STREAMING, ModelCapability.LONG_CONTEXT
-            ],
-            input_cost_per_1m=3.50,
-            output_cost_per_1m=10.50,
-            max_input_tokens=2000000,
-            max_output_tokens=8192,
-            tier=ModelTier.PREMIUM,
-            description="Google's most capable model with 2M context"
-        ))
-        
-        self.register(LLMModel(
-            id="gemini-1.5-flash",
-            name="Gemini 1.5 Flash",
-            provider="gemini",
-            provider_model_id="gemini-1.5-flash",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.STREAMING
-            ],
-            input_cost_per_1m=0.35,
-            output_cost_per_1m=1.05,
-            max_input_tokens=1000000,
-            max_output_tokens=8192,
-            tier=ModelTier.CHEAP,
-            description="Fast Gemini model for high-volume tasks"
-        ))
-        
-        # Azure OpenAI (same models, different provider)
-        self.register(LLMModel(
-            id="azure-gpt-4o",
-            name="Azure GPT-4o",
-            provider="azure",
-            provider_model_id="gpt-4o",
-            capabilities=[
-                ModelCapability.CHAT, ModelCapability.CODE,
-                ModelCapability.VISION, ModelCapability.FUNCTION_CALLING,
-                ModelCapability.JSON_MODE, ModelCapability.STREAMING
-            ],
-            input_cost_per_1m=5.00,
-            output_cost_per_1m=15.00,
-            max_input_tokens=128000,
-            max_output_tokens=16384,
-            tier=ModelTier.PREMIUM,
-            description="GPT-4o via Azure OpenAI"
-        ))
+        self._capability_models: Dict[ModelCapability, List[str]] = {}
+        self._hooks: List[Callable] = []
+        logger.info("ModelRegistry initialized (run discovery to populate)")
     
     def register(self, model: LLMModel):
-        """Register a new model"""
+        """Register a model from discovery"""
         self._models[model.id] = model
         
         # Update provider index
@@ -335,8 +159,23 @@ class ModelRegistry:
             if model.id not in self._capability_models[cap]:
                 self._capability_models[cap].append(model.id)
         
-        logger.info(f"Registered model: {model.id} ({model.provider})")
+        logger.info(f"Registered: {model.id} ({model.provider}) ${model.input_cost_per_1m}/1M")
         self._notify_hooks("registered", model)
+    
+    def update(self, model_id: str, **updates) -> bool:
+        """Update a model's fields (e.g., pricing from discovery)"""
+        model = self._models.get(model_id)
+        if not model:
+            return False
+        
+        for key, value in updates.items():
+            if hasattr(model, key):
+                setattr(model, key, value)
+        
+        model.discovered_at = datetime.utcnow()
+        logger.info(f"Updated: {model_id}")
+        self._notify_hooks("updated", model)
+        return True
     
     def get(self, model_id: str) -> Optional[LLMModel]:
         """Get model by ID"""
@@ -401,13 +240,12 @@ class ModelRegistry:
         models = self.find_models(capabilities=capabilities)
         if not models:
             return None
-        # Sort by latency (None last)
         return sorted(models, 
                      key=lambda m: m.average_latency_ms or float('inf'))[0]
     
     def update_availability(self, model_id: str, available: bool, 
                            error: Optional[str] = None):
-        """Update model availability (e.g., after circuit breaker trip)"""
+        """Update model availability"""
         model = self._models.get(model_id)
         if model:
             model.is_available = available
@@ -432,6 +270,43 @@ class ModelRegistry:
         """List all registered models"""
         return [m.to_dict() for m in self._models.values()]
     
+    def get_provider_stats(self) -> Dict[str, Any]:
+        """Get statistics by provider"""
+        stats = {}
+        for provider, model_ids in self._provider_models.items():
+            models = [self._models[mid] for mid in model_ids if mid in self._models]
+            stats[provider] = {
+                "model_count": len(models),
+                "available": len([m for m in models if m.is_available]),
+                "min_cost": min(m.input_cost_per_1m for m in models) if models else 0,
+                "max_cost": max(m.input_cost_per_1m for m in models) if models else 0,
+            }
+        return stats
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Get overall registry statistics"""
+        all_models = list(self._models.values())
+        available = [m for m in all_models if m.is_available]
+        
+        return {
+            "total_models": len(all_models),
+            "available": len(available),
+            "unavailable": len(all_models) - len(available),
+            "providers": list(self._provider_models.keys()),
+            "provider_stats": self.get_provider_stats(),
+            "last_updated": max(
+                (m.discovered_at for m in all_models if m.discovered_at),
+                default=None
+            )
+        }
+    
+    def clear(self):
+        """Clear all models (useful for refresh)"""
+        self._models.clear()
+        self._provider_models.clear()
+        self._capability_models.clear()
+        logger.info("Registry cleared")
+    
     def on_change(self, hook: Callable):
         """Register a hook for model changes"""
         self._hooks.append(hook)
@@ -445,7 +320,7 @@ class ModelRegistry:
                 logger.error(f"Hook error: {e}")
 
 
-# Singleton
+# Singleton - starts EMPTY
 model_registry = ModelRegistry()
 
 
