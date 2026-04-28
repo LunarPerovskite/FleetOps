@@ -41,19 +41,48 @@ class DiscoveredModel:
     def to_llm_model(self) -> LLMModel:
         """Convert discovery result to registry model"""
         p = self.pricing or {}
+        
+        # OpenRouter uses "prompt"/"completion", some providers use "input"/"output"
+        input_price = p.get("prompt", p.get("input", 0))
+        output_price = p.get("completion", p.get("output", 0))
+        cached_price = p.get("input_cache_read", None)
+        
+        # Prices from OpenRouter are per-token, convert to per-1M
+        # Handle edge cases: negative, NaN, None
+        def safe_price(val):
+            if val is None or val == "":
+                return 0.0
+            try:
+                p = float(val)
+                return max(0.0, p)  # No negative prices
+            except (ValueError, TypeError):
+                return 0.0
+        
+        input_per_1m = safe_price(input_price) * 1_000_000
+        output_per_1m = safe_price(output_price) * 1_000_000
+        cached_per_1m = safe_price(cached_price) * 1_000_000 if cached_price else None
+        
+        # Cap extreme values (some providers return invalid data)
+        input_per_1m = min(input_per_1m, 1000.0)  # Max $1000/1M
+        output_per_1m = min(output_per_1m, 1000.0)
+        
         return LLMModel(
             id=self.id,
             name=self.name,
             provider=self.provider,
             provider_model_id=self.provider_model_id,
             capabilities=self._infer_capabilities(),
-            input_cost_per_1m=p.get("input", 0) * 1_000_000,
-            output_cost_per_1m=p.get("output", 0) * 1_000_000,
+            input_cost_per_1m=input_per_1m,
+            output_cost_per_1m=output_per_1m,
+            cached_input_cost_per_1m=cached_per_1m,
             max_input_tokens=self.context_length or 128000,
             max_output_tokens=4096,
             max_total_tokens=self.context_length or 128000,
             tier=self._infer_tier(),
-            description=f"Discovered from {self.provider}"
+            description=f"Discovered from {self.provider}",
+            discovered_from=self.provider,
+            discovered_at=self.discovered_at,
+            raw_pricing=p
         )
     
     def _infer_capabilities(self) -> List[ModelCapability]:
@@ -83,13 +112,18 @@ class DiscoveredModel:
         return list(set(caps))
     
     def _infer_tier(self) -> ModelTier:
-        """Infer tier from pricing"""
+        """Infer tier from pricing (OpenRouter uses per-token pricing)"""
         if not self.pricing:
             return ModelTier.STANDARD
         
-        input_cost = self.pricing.get("input", 0) * 1_000_000
+        # Use prompt price (per token, so multiply by 1M)
+        prompt_price = self.pricing.get("prompt", self.pricing.get("input", 0))
+        try:
+            input_cost = float(prompt_price) * 1_000_000 if prompt_price else 0
+        except (ValueError, TypeError):
+            return ModelTier.STANDARD
         
-        if input_cost == 0:
+        if input_cost <= 0:
             return ModelTier.FREE
         elif input_cost < 1:
             return ModelTier.CHEAP
