@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import Mock, AsyncMock
 
 import sys
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from app.core.usage_extraction import RealUsageExtractor
 

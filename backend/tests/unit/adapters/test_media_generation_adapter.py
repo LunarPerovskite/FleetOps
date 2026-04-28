@@ -2,7 +2,7 @@
 import pytest
 import sys
 
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from app.adapters.media_generation_adapter import (
     MediaGenerationAdapter,

@@ -5,7 +5,7 @@ import asyncio
 from unittest.mock import AsyncMock, Mock
 
 import sys
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from app.core.circuit_breaker import (
     CircuitBreaker,

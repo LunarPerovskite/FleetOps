@@ -5,7 +5,7 @@ import json
 import os
 from unittest.mock import patch
 
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from fleetops_cli.connectors import (
     ConnectorRegistry,

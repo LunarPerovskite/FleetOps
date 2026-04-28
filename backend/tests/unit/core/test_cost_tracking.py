@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime, timedelta
 
 import sys
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from app.core.cost_tracking import (
     PricingConfigDB,

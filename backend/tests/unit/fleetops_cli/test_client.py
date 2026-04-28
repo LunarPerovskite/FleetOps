@@ -3,7 +3,7 @@ import pytest
 import sys
 from unittest.mock import AsyncMock, patch
 
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from fleetops_cli.client import FleetOpsClient, create_client
 

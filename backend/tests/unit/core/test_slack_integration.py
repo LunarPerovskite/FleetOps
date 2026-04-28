@@ -3,7 +3,7 @@ import pytest
 import sys
 from unittest.mock import AsyncMock, patch
 
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
+# sys.path removed - using PYTHONPATH
 
 from app.services.slack_integration import SlackIntegration
 

@@ -3,8 +3,6 @@ import pytest
 import sys
 from unittest.mock import patch, MagicMock, AsyncMock
 
-sys.path.insert(0, '/data/.openclaw/workspace/fleetops-temp/backend')
-
 from cli import app
 from typer.testing import CliRunner
 
