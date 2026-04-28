@@ -70,7 +70,7 @@ class TestCLIList:
         ])
         mock_get_client.return_value = mock_client
         
-        result = runner.invoke(app, ["list"])
+        result = runner.invoke(app, ["approvals"])
         
         assert result.exit_code == 0
         assert "Approvals" in result.output
@@ -84,7 +84,7 @@ class TestCLIList:
         ])
         mock_get_client.return_value = mock_client
         
-        result = runner.invoke(app, ["list"])
+        result = runner.invoke(app, ["approvals"])
         
         assert result.exit_code == 0
         assert "apr-001" in result.output
@@ -100,7 +100,7 @@ class TestCLIList:
         ])
         mock_get_client.return_value = mock_client
         
-        result = runner.invoke(app, ["list"])
+        result = runner.invoke(app, ["approvals"])
         
         assert result.exit_code == 0
         # Check for ANSI color codes (rich adds color)
@@ -256,7 +256,7 @@ class TestCLIHelp:
     
     def test_command_help(self):
         """Test individual command help"""
-        commands = ["status", "list", "approve", "reject", "agents", "costs", "config"]
+        commands = ["status", "approvals", "approve", "reject", "agents", "costs", "config"]
         
         for cmd in commands:
             result = runner.invoke(app, [cmd, "--help"])
@@ -277,7 +277,7 @@ class TestCLIColors:
         ])
         mock_get_client.return_value = mock_client
         
-        result = runner.invoke(app, ["list"])
+        result = runner.invoke(app, ["approvals"])
         
         # Should contain ANSI color codes (rich adds color) or emojis
         assert result.exit_code == 0

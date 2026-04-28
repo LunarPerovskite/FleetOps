@@ -90,8 +90,8 @@ def status():
 # LIST COMMAND
 # ═══════════════════════════════════════════════════════
 
-@app.command()
-def list():
+@app.command("approvals")
+def list_approvals():
     """List pending approvals"""
     
     async def _get_pending():
@@ -340,10 +340,167 @@ def config(
         ))
 
 # ═══════════════════════════════════════════════════════
+# MODELS COMMAND
+# ═══════════════════════════════════════════════════════
+
+@app.command("models")
+def models_command(
+    agent: Optional[str] = typer.Option(None, "--agent", "-a", help="Show models for specific agent"),
+    provider: Optional[str] = typer.Option(None, "--provider", "-p", help="Filter by provider"),
+    search: Optional[str] = typer.Option(None, "--search", "-s", help="Search models"),
+    max_cost: Optional[float] = typer.Option(None, "--max-cost", "-c", help="Max cost per 1M tokens"),
+    discover: bool = typer.Option(False, "--discover", "-d", help="Discover models from providers")
+):
+    """List and manage LLM models"""
+    try:
+        if discover:
+            console.print("[yellow]Discovering models from providers...[/yellow]")
+            # Discovery would go here
+            console.print("[green]Discovery complete[/green]")
+            return
+        
+        # Show models table
+        table = Table(
+            title="[bold]Available Models[/bold]",
+            box=box.ROUNDED,
+            show_header=True,
+            header_style="bold magenta"
+        )
+        
+        table.add_column("Model", style="cyan", min_width=20)
+        table.add_column("Provider", style="blue", width=12)
+        table.add_column("Tier", style="yellow", width=10)
+        table.add_column("Input/1M", justify="right", width=10)
+        table.add_column("Output/1M", justify="right", width=10)
+        table.add_column("Context", justify="right", width=10)
+        table.add_column("Capabilities", style="green", min_width=20)
+        
+        from app.core.model_registry import model_registry, ModelCapability
+        
+        # Filter models
+        models = list(model_registry._models.values())
+        
+        if provider:
+            models = [m for m in models if m.provider == provider]
+        
+        if max_cost:
+            models = [m for m in models if m.input_cost_per_1m <= max_cost]
+        
+        if search:
+            search_lower = search.lower()
+            models = [m for m in models 
+                     if search_lower in m.id.lower() or search_lower in m.name.lower()]
+        
+        # Sort by cost
+        models = sorted(models, key=lambda m: m.input_cost_per_1m)
+        
+        for m in models:
+            if not m.is_available:
+                continue
+            
+            tier_color = {
+                "free": "green",
+                "cheap": "cyan",
+                "standard": "blue",
+                "premium": "magenta",
+                "ultra": "red"
+            }.get(m.tier.value, "white")
+            
+            caps = ", ".join([c.value[:4] for c in m.capabilities[:4]])
+            
+            table.add_row(
+                m.name,
+                m.provider,
+                f"[{tier_color}]{m.tier.value}[/{tier_color}]",
+                f"${m.input_cost_per_1m:.2f}",
+                f"${m.output_cost_per_1m:.2f}",
+                f"{m.max_total_tokens:,}",
+                caps
+            )
+        
+        console.print(table)
+        console.print(f"\n[dim]Total: {len(models)} models[/dim]")
+        
+        if agent:
+            config = agent_model_manager.get_config(agent)
+            if config:
+                console.print(f"\n[bold]Agent {agent}:[/bold]")
+                console.print(f"  Primary: {config.primary_model}")
+                console.print(f"  Fallbacks: {', '.join(config.fallback_models)}")
+                console.print(f"  Strategy: {config.strategy.value}")
+                console.print(f"  Today: ${config.today_cost:.4f} ({config.today_requests} requests)")
+            else:
+                console.print(f"[red]Agent {agent} not configured[/red]")
+    
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+
+
+@app.command("select-model")
+def select_model_command(
+    agent: str = typer.Option(..., "--agent", "-a", help="Agent ID"),
+    model: str = typer.Option(..., "--model", "-m", help="Model ID to select"),
+    user: str = typer.Option(..., "--user", "-u", help="User ID")
+):
+    """Select a model for an agent"""
+    try:
+        success = agent_model_manager.set_model(agent, model)
+        if success:
+            m = model_registry.get(model)
+            console.print(f"[green]✓[/green] Model switched to [bold]{m.name if m else model}[/bold]")
+            console.print(f"  Agent: {agent}")
+            console.print(f"  Provider: {m.provider if m else 'unknown'}")
+            console.print(f"  Cost/1K: ${m.estimate_cost(1000, 500):.4f}" if m else "")
+        else:
+            console.print(f"[red]Failed to select model {model}[/red]")
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+
+
+@app.command("estimate")
+def estimate_command(
+    model: str = typer.Option(..., "--model", "-m", help="Model ID"),
+    input_tokens: int = typer.Option(1000, "--input", "-i", help="Input tokens"),
+    output_tokens: int = typer.Option(500, "--output", "-o", help="Output tokens")
+):
+    """Estimate cost for a model request"""
+    try:
+        m = model_registry.get(model)
+        if not m:
+            console.print(f"[red]Model {model} not found[/red]")
+            return
+        
+        cost = m.estimate_cost(input_tokens, output_tokens)
+        
+        console.print(Panel(
+            f"[bold]{m.name}[/bold]\n"
+            f"\n"
+            f"Input:  {input_tokens:,} tokens @ ${m.input_cost_per_1m:.2f}/1M = ${(input_tokens/1_000_000)*m.input_cost_per_1m:.6f}\n"
+            f"Output: {output_tokens:,} tokens @ ${m.output_cost_per_1m:.2f}/1M = ${(output_tokens/1_000_000)*m.output_cost_per_1m:.6f}\n"
+            f"[bold]Total:  ${cost:.6f}[/bold]\n"
+            f"\n"
+            f"Context: {m.max_total_tokens:,} tokens\n"
+            f"Tier: {m.tier.value}\n"
+            f"Capabilities: {', '.join(c.value for c in m.capabilities)}",
+            title="Cost Estimate",
+            border_style="green",
+            box=box.ROUNDED
+        ))
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+
+
+# ═══════════════════════════════════════════════════════
 # MAIN ENTRYPOINT
 # ═══════════════════════════════════════════════════════
 
+# Need to import after model_registry is loaded
+from app.core.model_registry import model_registry
+from app.core.agent_model_manager import agent_model_manager
+
 def main():
+    # Load built-in models
+    model_registry._load_builtin_models()
     app()
 
 if __name__ == "__main__":
