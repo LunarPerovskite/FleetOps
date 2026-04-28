@@ -1,129 +1,140 @@
 """Dynamic Model Discovery for FleetOps
 
-Fetches REAL models from live APIs:
-- OpenRouter (100+ models from all providers)
-- Ollama (local models)
-- OpenAI API (list models)
-- Anthropic (static list)
-- Each provider's API
+Fetches REAL models from multiple provider APIs:
+- Direct providers: OpenAI, Anthropic, Gemini, DeepSeek, Mistral, Cohere, Z.ai, MiniMax, ElevenLabs
+- Aggregators: OpenRouter (100+ models from all providers)
+- Local: Ollama
 
-Users see the ACTUAL latest models available.
+Each connector hits the actual provider API for live pricing.
+Users see ACTUAL latest models with real costs.
 """
 
-from typing import Dict, Any, Optional, List, Callable, Set
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List
 from datetime import datetime
-import httpx
-import json
 import asyncio
 
-from app.core.model_registry import (
-    LLMModel, ModelCapability, ModelTier, model_registry
+from app.core.model_registry import LLMModel, ModelCapability, ModelTier, model_registry
+from app.core.model_providers import (
+    get_connector, list_supported_providers
 )
 from app.core.logging_config import get_logger
 
 logger = get_logger("fleetops.model_discovery")
 
 
-@dataclass
-class DiscoveredModel:
-    """Model discovered from a provider API"""
-    id: str
-    name: str
-    provider: str
-    provider_model_id: str
-    context_length: Optional[int] = None
-    pricing: Optional[Dict[str, float]] = None
-    capabilities: List[str] = None
-    raw_data: Dict = None
-    discovered_at: datetime = None
+class ModelDiscoveryService:
+    """Discovers models from ALL sources: direct providers + OpenRouter + local"""
     
-    def to_llm_model(self) -> LLMModel:
-        """Convert discovery result to registry model"""
-        p = self.pricing or {}
-        
-        # OpenRouter uses "prompt"/"completion", some providers use "input"/"output"
-        input_price = p.get("prompt", p.get("input", 0))
-        output_price = p.get("completion", p.get("output", 0))
-        cached_price = p.get("input_cache_read", None)
-        
-        # Prices from OpenRouter are per-token, convert to per-1M
-        # Handle edge cases: negative, NaN, None
-        def safe_price(val):
-            if val is None or val == "":
-                return 0.0
-            try:
-                p = float(val)
-                return max(0.0, p)  # No negative prices
-            except (ValueError, TypeError):
-                return 0.0
-        
-        input_per_1m = safe_price(input_price) * 1_000_000
-        output_per_1m = safe_price(output_price) * 1_000_000
-        cached_per_1m = safe_price(cached_price) * 1_000_000 if cached_price else None
-        
-        # Cap extreme values (some providers return invalid data)
-        input_per_1m = min(input_per_1m, 1000.0)  # Max $1000/1M
-        output_per_1m = min(output_per_1m, 1000.0)
-        
-        return LLMModel(
-            id=self.id,
-            name=self.name,
-            provider=self.provider,
-            provider_model_id=self.provider_model_id,
-            capabilities=self._infer_capabilities(),
-            input_cost_per_1m=input_per_1m,
-            output_cost_per_1m=output_per_1m,
-            cached_input_cost_per_1m=cached_per_1m,
-            max_input_tokens=self.context_length or 128000,
-            max_output_tokens=4096,
-            max_total_tokens=self.context_length or 128000,
-            tier=self._infer_tier(),
-            description=f"Discovered from {self.provider}",
-            discovered_from=self.provider,
-            discovered_at=self.discovered_at,
-            raw_pricing=p
-        )
+    def __init__(self):
+        self._last_discovery: Optional[datetime] = None
+        self._discovered_models: Dict[str, Dict] = {}
+        self._connectors: Dict[str, Any] = {}
     
-    def _infer_capabilities(self) -> List[ModelCapability]:
-        """Infer capabilities from model ID/name"""
-        caps = [ModelCapability.CHAT, ModelCapability.STREAMING]
-        name_lower = self.name.lower()
-        id_lower = self.id.lower()
+    async def discover_from_provider(self, provider: str, **kwargs) -> List[Dict[str, Any]]:
+        """Discover models from a single provider"""
         
-        if any(x in name_lower for x in ["vision", "gpt-4o", "claude-3", "gemini"]):
-            caps.append(ModelCapability.VISION)
-        if any(x in name_lower for x in ["code", "coder", "devin"]):
-            caps.append(ModelCapability.CODE)
-        if any(x in name_lower for x in ["function", "tool"]):
-            caps.append(ModelCapability.FUNCTION_CALLING)
-        if "json" in name_lower or "openai" in id_lower:
-            caps.append(ModelCapability.JSON_MODE)
-        if self.context_length and self.context_length > 100000:
-            caps.append(ModelCapability.LONG_CONTEXT)
+        connector = get_connector(provider, **kwargs)
+        if not connector:
+            logger.warning(f"Unknown provider: {provider}")
+            return []
         
-        if self.capabilities:
-            for c in self.capabilities:
-                try:
-                    caps.append(ModelCapability(c))
-                except:
-                    pass
-        
-        return list(set(caps))
-    
-    def _infer_tier(self) -> ModelTier:
-        """Infer tier from pricing (OpenRouter uses per-token pricing)"""
-        if not self.pricing:
-            return ModelTier.STANDARD
-        
-        # Use prompt price (per token, so multiply by 1M)
-        prompt_price = self.pricing.get("prompt", self.pricing.get("input", 0))
         try:
-            input_cost = float(prompt_price) * 1_000_000 if prompt_price else 0
-        except (ValueError, TypeError):
-            return ModelTier.STANDARD
+            models = await connector.list_models()
+            logger.info(f"Discovered {len(models)} models from {provider}")
+            
+            # Store
+            for m in models:
+                m["discovered_from"] = provider
+                m["discovered_at"] = datetime.utcnow().isoformat()
+                self._discovered_models[m["id"]] = m
+            
+            return models
+            
+        except Exception as e:
+            logger.error(f"Discovery failed for {provider}: {e}")
+            return []
+        finally:
+            await connector.close()
+    
+    async def discover_all(self, providers: Optional[List[str]] = None) -> Dict[str, List[Dict]]:
+        """Discover models from all configured providers
         
-        if input_cost <= 0:
+        Args:
+            providers: List of provider IDs to discover from.
+                      If None, discovers from all providers with API keys.
+        
+        Returns:
+            Dict mapping provider -> list of models
+        """
+        
+        if providers is None:
+            # Discover from all supported providers
+            providers = [p["id"] for p in list_supported_providers()]
+        
+        results = {}
+        
+        for provider in providers:
+            models = await self.discover_from_provider(provider)
+            results[provider] = models
+        
+        self._last_discovery = datetime.utcnow()
+        
+        total = sum(len(v) for v in results.values())
+        logger.info(f"Total discovered from {len(providers)} providers: {total}")
+        
+        return results
+    
+    def register_model(self, model_data: Dict) -> bool:
+        """Register a discovered model in the global registry"""
+        
+        try:
+            pricing = model_data.get("pricing", {})
+            
+            model = LLMModel(
+                id=model_data["id"],
+                name=model_data["name"],
+                provider=model_data["provider"],
+                provider_model_id=model_data["provider_model_id"],
+                capabilities=[
+                    ModelCapability(c) for c in model_data.get("capabilities", ["chat"])
+                    if c in [m.value for m in ModelCapability]
+                ],
+                input_cost_per_1m=pricing.get("input", 0),
+                output_cost_per_1m=pricing.get("output", 0),
+                max_input_tokens=model_data.get("context_length") or 128000,
+                max_output_tokens=4096,
+                max_total_tokens=model_data.get("context_length") or 128000,
+                tier=self._infer_tier(pricing),
+                description=f"{model_data.get('type', 'chat')} model from {model_data['provider']}",
+                discovered_from=model_data.get("discovered_from", "unknown"),
+                discovered_at=datetime.utcnow()
+            )
+            
+            model_registry.register(model)
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to register model: {e}")
+            return False
+    
+    def register_all(self, provider: Optional[str] = None) -> int:
+        """Register all discovered models"""
+        
+        registered = 0
+        for model_id, model_data in self._discovered_models.items():
+            if provider and model_data.get("discovered_from") != provider:
+                continue
+            
+            if self.register_model(model_data):
+                registered += 1
+        
+        return registered
+    
+    def _infer_tier(self, pricing: Dict) -> ModelTier:
+        """Infer tier from pricing"""
+        input_cost = pricing.get("input", 0)
+        
+        if input_cost == 0:
             return ModelTier.FREE
         elif input_cost < 1:
             return ModelTier.CHEAP
@@ -133,291 +144,67 @@ class DiscoveredModel:
             return ModelTier.PREMIUM
         else:
             return ModelTier.ULTRA
-
-
-class OpenRouterDiscovery:
-    """Discover REAL models from OpenRouter API
     
-    OpenRouter aggregates 100+ models from all providers:
-    - OpenAI (GPT-4o, o1, etc.)
-    - Anthropic (Claude 3.7, etc.)
-    - Google (Gemini 2.0, etc.)
-    - Meta (Llama 3, etc.)
-    - Mistral, DeepSeek, Cohere, and more
-    
-    Returns live pricing, context lengths, and metadata.
-    """
-    
-    API_URL = "https://openrouter.ai/api/v1/models"
-    
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or ""
-        self.client = httpx.AsyncClient(timeout=30)
-    
-    async def discover(self) -> List[DiscoveredModel]:
-        """Fetch all models from OpenRouter"""
-        headers = {}
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
-        
-        try:
-            response = await self.client.get(self.API_URL, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            
-            models = []
-            for item in data.get("data", []):
-                # Extract pricing
-                pricing = item.get("pricing", {})
-                
-                models.append(DiscoveredModel(
-                    id=f"openrouter/{item['id']}",
-                    name=item.get("name", item["id"]),
-                    provider="openrouter",
-                    provider_model_id=item["id"],
-                    context_length=item.get("context_length"),
-                    pricing={
-                        "prompt": float(pricing.get("prompt", 0) or 0),
-                        "completion": float(pricing.get("completion", 0) or 0)
-                    } if pricing else None,
-                    raw_data=item,
-                    discovered_at=datetime.utcnow()
-                ))
-            
-            logger.info(f"Discovered {len(models)} models from OpenRouter")
-            return models
-            
-        except Exception as e:
-            logger.error(f"OpenRouter discovery failed: {e}")
-            return []
-    
-    async def close(self):
-        await self.client.aclose()
-
-
-class OllamaDiscovery:
-    """Discover local models from Ollama"""
-    
-    def __init__(self, base_url: str = "http://localhost:11434"):
-        self.base_url = base_url.rstrip("/")
-        self.client = httpx.AsyncClient(timeout=10)
-    
-    async def discover(self) -> List[DiscoveredModel]:
-        """Fetch local models from Ollama"""
-        try:
-            response = await self.client.get(f"{self.base_url}/api/tags")
-            response.raise_for_status()
-            data = response.json()
-            
-            models = []
-            for item in data.get("models", []):
-                model_id = item["name"]
-                models.append(DiscoveredModel(
-                    id=f"ollama/{model_id}",
-                    name=model_id,
-                    provider="ollama",
-                    provider_model_id=model_id,
-                    context_length=None,  # Ollama doesn't report this
-                    pricing={"prompt": 0, "completion": 0},  # Free (local)
-                    raw_data=item,
-                    discovered_at=datetime.utcnow()
-                ))
-            
-            logger.info(f"Discovered {len(models)} models from Ollama")
-            return models
-            
-        except httpx.ConnectError:
-            logger.info("Ollama not running, skipping local discovery")
-            return []
-        except Exception as e:
-            logger.error(f"Ollama discovery failed: {e}")
-            return []
-    
-    async def close(self):
-        await self.client.aclose()
-
-
-class OpenAIDiscovery:
-    """Discover models from OpenAI API"""
-    
-    def __init__(self, api_key: Optional[str] = None):
-        self.api_key = api_key or ""
-        self.client = httpx.AsyncClient(
-            base_url="https://api.openai.com/v1",
-            headers={"Authorization": f"Bearer {self.api_key}"} if self.api_key else {},
-            timeout=30
-        )
-    
-    async def discover(self) -> List[DiscoveredModel]:
-        """Fetch models from OpenAI"""
-        if not self.api_key:
-            logger.info("No OpenAI API key, skipping discovery")
-            return []
-        
-        try:
-            response = await self.client.get("/models")
-            response.raise_for_status()
-            data = response.json()
-            
-            models = []
-            for item in data.get("data", []):
-                model_id = item["id"]
-                # Skip non-chat models
-                if not any(x in model_id for x in ["gpt", "o1", "davinci"]):
-                    continue
-                
-                models.append(DiscoveredModel(
-                    id=model_id,
-                    name=item.get("name", model_id),
-                    provider="openai",
-                    provider_model_id=model_id,
-                    raw_data=item,
-                    discovered_at=datetime.utcnow()
-                ))
-            
-            logger.info(f"Discovered {len(models)} models from OpenAI")
-            return models
-            
-        except Exception as e:
-            logger.error(f"OpenAI discovery failed: {e}")
-            return []
-    
-    async def close(self):
-        await self.client.aclose()
-
-
-class ModelDiscoveryService:
-    """Service that discovers and registers models from all sources"""
-    
-    def __init__(self):
-        self.discoverers = {
-            "openrouter": OpenRouterDiscovery(),
-            "ollama": OllamaDiscovery(),
-            "openai": OpenAIDiscovery(),
-        }
-        self._last_discovery: Optional[datetime] = None
-        self._discovered_models: Dict[str, DiscoveredModel] = {}
-    
-    async def discover_all(self, sources: Optional[List[str]] = None) -> Dict[str, List[DiscoveredModel]]:
-        """Discover models from all configured sources"""
-        
-        sources = sources or list(self.discoverers.keys())
-        results = {}
-        
-        for source in sources:
-            discoverer = self.discoverers.get(source)
-            if discoverer:
-                try:
-                    models = await discoverer.discover()
-                    results[source] = models
-                    
-                    # Store in cache
-                    for m in models:
-                        self._discovered_models[m.id] = m
-                except Exception as e:
-                    logger.error(f"Discovery failed for {source}: {e}")
-                    results[source] = []
-        
-        self._last_discovery = datetime.utcnow()
-        total = sum(len(v) for v in results.values())
-        logger.info(f"Total discovered models: {total}")
-        
-        return results
-    
-    def register_discovered(self, model_id: str) -> bool:
-        """Register a discovered model in the global registry"""
-        
-        discovered = self._discovered_models.get(model_id)
-        if not discovered:
-            logger.error(f"Model {model_id} not in discovery cache")
-            return False
-        
-        try:
-            llm_model = discovered.to_llm_model()
-            model_registry.register(llm_model)
-            logger.info(f"Registered discovered model: {model_id}")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to register {model_id}: {e}")
-            return False
-    
-    def register_all_discovered(self, source: Optional[str] = None) -> int:
-        """Register all discovered models"""
-        
-        registered = 0
-        for model_id, discovered in self._discovered_models.items():
-            if source and discovered.provider != source:
-                continue
-            
-            if self.register_discovered(model_id):
-                registered += 1
-        
-        return registered
-    
-    def search(self, query: str = "", 
+    def search(self, query: str = "",
                provider: Optional[str] = None,
+               model_type: Optional[str] = None,
                capability: Optional[str] = None,
-               max_cost: Optional[float] = None) -> List[Dict[str, Any]]:
+               max_cost: Optional[float] = None) -> List[Dict]:
         """Search discovered models"""
         
         results = []
-        for model in self._discovered_models.values():
+        for m in self._discovered_models.values():
             # Filter by query
-            if query and query.lower() not in model.name.lower() and query.lower() not in model.id.lower():
+            if query and query.lower() not in m.get("name", "").lower() and \
+               query.lower() not in m.get("id", "").lower():
                 continue
             
             # Filter by provider
-            if provider and model.provider != provider:
+            if provider and m.get("provider") != provider:
+                continue
+            
+            # Filter by type
+            if model_type and m.get("type") != model_type:
                 continue
             
             # Filter by capability
-            if capability and capability not in (model.capabilities or []):
+            if capability and capability not in m.get("capabilities", []):
                 continue
             
             # Filter by cost
-            if max_cost and model.pricing:
-                if model.pricing.get("prompt", 0) * 1_000_000 > max_cost:
+            if max_cost:
+                price = m.get("pricing", {}).get("input", 0)
+                if price > max_cost:
                     continue
             
-            results.append({
-                "id": model.id,
-                "name": model.name,
-                "provider": model.provider,
-                "context_length": model.context_length,
-                "pricing": model.pricing,
-                "capabilities": model.capabilities,
-                "discovered_at": model.discovered_at.isoformat() if model.discovered_at else None
-            })
+            results.append(m)
         
-        return sorted(results, key=lambda m: m.get("pricing", {}).get("prompt", 0))
+        return sorted(results, key=lambda m: m.get("pricing", {}).get("input", 0))
+    
+    def get_by_type(self, model_type: str) -> List[Dict]:
+        """Get models by type (chat, embedding, audio, image, etc.)"""
+        return [m for m in self._discovered_models.values() if m.get("type") == model_type]
     
     def get_stats(self) -> Dict[str, Any]:
         """Get discovery statistics"""
         
         by_provider = {}
-        for model in self._discovered_models.values():
-            provider = model.provider
-            if provider not in by_provider:
-                by_provider[provider] = 0
-            by_provider[provider] += 1
+        by_type = {}
+        
+        for m in self._discovered_models.values():
+            provider = m.get("provider", "unknown")
+            model_type = m.get("type", "unknown")
+            
+            by_provider[provider] = by_provider.get(provider, 0) + 1
+            by_type[model_type] = by_type.get(model_type, 0) + 1
         
         return {
             "total_discovered": len(self._discovered_models),
             "by_provider": by_provider,
+            "by_type": by_type,
             "last_discovery": self._last_discovery.isoformat() if self._last_discovery else None,
-            "registered_in_registry": len([
-                m for m in self._discovered_models 
-                if m.id in model_registry._models
-            ])
+            "registered": len(model_registry._models)
         }
-    
-    async def close(self):
-        """Close all discoverer connections"""
-        for discoverer in self.discoverers.values():
-            try:
-                await discoverer.close()
-            except:
-                pass
 
 
 # Singleton
@@ -428,28 +215,31 @@ discovery_service = ModelDiscoveryService()
 # CONVENIENCE FUNCTIONS
 # ═══════════════════════════════════════
 
-async def discover_models(sources: Optional[List[str]] = None) -> Dict[str, List[Dict]]:
-    """Discover models from all sources"""
-    results = await discovery_service.discover_all(sources)
-    return {
-        source: [{
-            "id": m.id,
-            "name": m.name,
-            "provider": m.provider,
-            "context_length": m.context_length,
-            "pricing": m.pricing
-        } for m in models]
-        for source, models in results.items()
-    }
+async def discover_from_provider(provider: str, **kwargs) -> List[Dict]:
+    """Discover from a specific provider"""
+    return await discovery_service.discover_from_provider(provider, **kwargs)
 
-def register_discovered_model(model_id: str) -> bool:
-    """Register a single discovered model"""
-    return discovery_service.register_discovered(model_id)
+async def discover_all_models(providers: Optional[List[str]] = None) -> Dict[str, List[Dict]]:
+    """Discover from all providers"""
+    return await discovery_service.discover_all(providers)
+
+def get_chat_models() -> List[Dict]:
+    """Get all chat models"""
+    return discovery_service.get_by_type("chat")
+
+def get_embedding_models() -> List[Dict]:
+    """Get all embedding models"""
+    return discovery_service.get_by_type("embedding")
+
+def get_audio_models() -> List[Dict]:
+    """Get all audio models (TTS, transcription)"""
+    return discovery_service.get_by_type("audio_generation") + \
+           discovery_service.get_by_type("audio_transcription")
+
+def get_image_models() -> List[Dict]:
+    """Get all image generation models"""
+    return discovery_service.get_by_type("image_generation")
 
 def search_models(query: str = "", **filters) -> List[Dict]:
     """Search discovered models"""
     return discovery_service.search(query, **filters)
-
-def get_discovery_stats() -> Dict[str, Any]:
-    """Get discovery statistics"""
-    return discovery_service.get_stats()
