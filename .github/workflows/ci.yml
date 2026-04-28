@@ -72,6 +72,7 @@ jobs:
         cd backend
         source venv/bin/activate
         PYTHONPATH=/home/runner/work/FleetOps/FleetOps/backend pytest tests/unit/ -v --tb=short
+      env:
         DATABASE_URL: ${{ env.DATABASE_URL }}
         DATABASE_URL_SYNC: ${{ env.DATABASE_URL_SYNC }}
         REDIS_URL: ${{ env.REDIS_URL }}
