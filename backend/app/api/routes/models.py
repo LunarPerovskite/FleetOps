@@ -15,11 +15,14 @@ from pydantic import BaseModel
 from app.core.model_registry import model_registry, LLMModel, ModelCapability, ModelTier
 from app.core.agent_model_manager import agent_model_manager, RoutingStrategy
 from app.core.model_discovery import discovery_service
+from app.core.auto_discovery_service import auto_discovery
 from app.core.logging_config import get_logger
+from app.api.routes.auth import get_current_user
+from app.models.models import User
 
 logger = get_logger("fleetops.api.models")
 
-router = APIRouter(prefix="/api/v1/models", tags=["models"])
+router = APIRouter(prefix="/models", tags=["models"])
 
 
 # ═══════════════════════════════════════
@@ -334,6 +337,86 @@ async def discover_models(
         "total_discovered": sum(len(v) for v in results.values()),
         "message": "Discovery complete. Use POST /models/register to add to registry."
     }
+
+
+@router.post("/discover/auto")
+async def auto_discover_models(
+    provider: Optional[str] = Query(None, description="Specific provider to discover, or all if omitted")
+):
+    """Auto-discover models using configured API keys.
+    
+    This endpoint uses the AutoDiscoveryService which reads API keys from:
+    1. Environment variables (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.)
+    2. Future: organization secrets store
+    
+    No manual model list needed — just configure your keys and FleetOps
+    finds everything available.
+    """
+    
+    if provider:
+        results = await auto_discovery.discover_provider(provider)
+        return {
+            "status": "success",
+            "provider": provider,
+            "models_discovered": len(results),
+            "models": results,
+        }
+    else:
+        results = await auto_discovery.discover_all_configured()
+        return {
+            "status": "success",
+            "providers": {
+                p: len(m) for p, m in results.items()
+            },
+            "total_discovered": sum(len(v) for v in results.values()),
+            "message": "Auto-discovery complete. Models registered automatically.",
+        }
+
+
+@router.post("/providers/{provider}/refresh-key")
+async def refresh_provider_key(
+    provider: str,
+    api_key: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Update API key for a provider and auto-discover models.
+    
+    This is the main endpoint for the Settings → Providers UI.
+    When user pastes a new API key, FleetOps:
+    1. Validates the key (test call)
+    2. Discovers all available models
+    3. Registers them in the global registry
+    4. Returns the discovered models
+    """
+    
+    from app.core.auth import verify_token
+    
+    # TODO: Save key to secrets store for the org
+    # For now, discovery uses the provided key directly
+    
+    result = await auto_discovery.refresh_on_key_update(provider, api_key)
+    
+    return {
+        "status": "success",
+        "provider": provider,
+        **result,
+        "message": f"Discovered {result['models_discovered']} models from {provider}",
+    }
+
+
+@router.get("/providers/status")
+async def get_provider_discovery_status(
+    current_user: User = Depends(get_current_user)
+):
+    """Get status of all providers: which have API keys, how many models registered.
+    
+    Frontend uses this to show:
+    - Provider cards with "Connected" / "Not configured" badges
+    - Model count per provider
+    - "Add key" buttons for unconfigured providers
+    """
+    
+    return auto_discovery.get_provider_status()
 
 
 @router.post("/register")
