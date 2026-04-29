@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await authAPI.login(email, password);
+      const response = await authAPI.login({ email, password });
       localStorage.setItem('fleetops_token', response.access_token);
       await fetchUser();
     } catch (err: any) {

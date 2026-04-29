@@ -49,6 +49,7 @@ class Organization(Base):
     teams = relationship("Team", back_populates="organization")
     agents = relationship("Agent", back_populates="organization")
     users = relationship("User", back_populates="organization")
+    agent_instances = relationship("AgentInstance", back_populates="organization")
 
 class Team(Base):
     __tablename__ = "teams"

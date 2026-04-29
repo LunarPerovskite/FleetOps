@@ -2,7 +2,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from app.core.config import settings
-from app.models.models import Base
+
+# Import Base from the models package (this triggers import of all model files)
+from app.models import Base
 
 # Detect database type
 IS_SQLITE = "sqlite" in settings.DATABASE_URL.lower()

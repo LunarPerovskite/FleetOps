@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from contextlib import asynccontextmanager
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     init_db()
     yield
     # Shutdown
-    await async_engine.dispose()
+    async_engine.dispose()
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -61,6 +61,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ─── Root-level WebSocket for frontend ─────────────────────────────────
+@app.websocket("/ws")
+async def root_websocket(websocket: WebSocket):
+    """Generic WebSocket for frontend connections"""
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "heartbeat":
+                await websocket.send_json({"type": "heartbeat_ack"})
+            else:
+                await websocket.send_json({"type": "ack", "received": data})
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
 
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])

@@ -113,6 +113,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         self.size_limit = RequestSizeMiddleware(app)
     
     async def dispatch(self, request: Request, call_next):
+        # Skip WebSocket upgrade requests
+        if request.headers.get("upgrade", "").lower() == "websocket":
+            return await call_next(request)
+        
         # Apply all middleware layers
         
         # 1. Size limit

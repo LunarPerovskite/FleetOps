@@ -8,6 +8,22 @@ from app.models.models import Agent, User, HumanRole
 
 router = APIRouter()
 
+@router.websocket("/ws")
+async def generic_websocket(websocket: WebSocket):
+    """Generic WebSocket for frontend connections (no auth required)"""
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if data.get("type") == "heartbeat":
+                await websocket.send_json({"type": "heartbeat_ack"})
+            else:
+                await websocket.send_json({"type": "ack", "received": data})
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+
 @router.websocket("/ws/agent/{agent_id}")
 async def agent_websocket(websocket: WebSocket, agent_id: str, db: AsyncSession = Depends(get_db)):
     """WebSocket for agents to connect from any machine"""
