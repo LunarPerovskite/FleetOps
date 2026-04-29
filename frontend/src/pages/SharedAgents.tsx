@@ -136,7 +136,7 @@ export default function SharedAgents() {
   }
 
   if (error) {
-    return <ErrorDisplay error={error} onRetry={fetchData} />;
+    return <ErrorDisplay message={error} onRetry={fetchData} />;
   }
 
   return (

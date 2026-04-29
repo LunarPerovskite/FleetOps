@@ -77,9 +77,9 @@ export default function Teams() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure?')) return;
     try {
-      await teamsAPI.delete?.(id) || fetch(`/api/v1/teams/${id}`, { method: 'DELETE' });
+      await teamsAPI.delete?.(id);
       toast.success('Team deleted');
-      fetchTeams();
+      await fetchTeams();
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete');
     }
@@ -104,7 +104,7 @@ export default function Teams() {
   }
 
   if (error) {
-    return <ErrorDisplay error={error} onRetry={fetchTeams} />;
+    return <ErrorDisplay message={error} onRetry={fetchTeams} />;
   }
 
   return (
@@ -135,7 +135,7 @@ export default function Teams() {
                 type="text"
                 name="name"
                 value={values.name}
-                onChange={handleChange}
+                onChange={(e) => handleChange('name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Engineering Team"
               />
@@ -147,7 +147,7 @@ export default function Teams() {
                 type="number"
                 name="budget"
                 value={values.budget}
-                onChange={handleChange}
+                onChange={(e) => handleChange('budget', parseFloat(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>

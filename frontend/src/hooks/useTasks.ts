@@ -26,7 +26,22 @@ export function useTaskList(filters?: { status?: string; page?: number; page_siz
     fetchTasks();
   }, [filters?.status, filters?.page, filters?.page_size]);
   
-  return { data, isLoading, error, total };
+  const refresh = async () => {
+    try {
+      setIsLoading(true);
+      const response = await tasksAPI.list(filters);
+      setData(response?.tasks || []);
+      setTotal(response?.total || 0);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load tasks');
+      setData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { data, isLoading, error, total, refresh };
 }
 
 export function useTaskDetail(id: string) {
