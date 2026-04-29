@@ -199,9 +199,8 @@ export default function Webhooks() {
       {/* Webhooks List */}
       {webhooks.length === 0 ? (
         <EmptyState
-          icon={Webhook}
           title="No webhooks configured"
-          description="Add webhooks to send events to external tools like Zapier, Slack, or your own API"
+          message="Add webhooks to send events to external tools like Zapier, Slack, or your own API"
           action={{
             label: 'Add Webhook',
             onClick: () => setShowForm(true)
@@ -224,7 +223,7 @@ export default function Webhooks() {
                   
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Bell className="w-4 h-4" />
-                    {webhook.events?.split(',').join(', ') || 'All events'}
+                    {Array.isArray(webhook.events) ? webhook.events.join(', ') : webhook.events}
                   </div>
                   
                   {webhook.last_status && (
