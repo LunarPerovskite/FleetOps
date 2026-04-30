@@ -11,7 +11,7 @@ Endpoints for cross-agent workflows:
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from typing import List, Dict, Any, Optional
 
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.models import User
 from app.services.multi_agent_orchestrator import multi_agent_orchestrator
 

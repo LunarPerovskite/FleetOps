@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.services.customer_service import CustomerServiceManager
 from app.models.models import User
 

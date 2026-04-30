@@ -138,9 +138,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "0"
         response.headers["Content-Security-Policy"] = "default-src 'self'"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
-        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        # Removed CORP/COEP headers that interfere with CORS
+        # response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+        # response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        # response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         
         # Remove fingerprinting
         if "Server" in response.headers:

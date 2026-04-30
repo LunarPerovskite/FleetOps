@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from typing import List, Optional
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.pagination import PaginationParams, paginate_query
@@ -12,25 +13,33 @@ from datetime import datetime
 
 router = APIRouter()
 
+class CreateTaskRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+    agent_id: Optional[str] = None
+    risk_level: str = "low"
+
 @router.post("/")
 async def create_task(
-    title: str,
-    description: Optional[str] = None,
-    agent_id: Optional[str] = None,
-    risk_level: RiskLevel = RiskLevel.LOW,
+    data: CreateTaskRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    risk_map = {
+        "low": RiskLevel.LOW,
+        "medium": RiskLevel.MEDIUM,
+        "high": RiskLevel.HIGH,
+        "critical": RiskLevel.CRITICAL
+    }
     task = Task(
         id=str(uuid.uuid4()),
-        title=title,
-        description=description,
-        agent_id=agent_id,
-        risk_level=risk_level,
+        title=data.title,
+        description=data.description,
+        agent_id=data.agent_id,
+        risk_level=risk_map.get(data.risk_level, RiskLevel.LOW),
         created_by=current_user.id,
         org_id=current_user.org_id,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.utcnow()
     )
     db.add(task)
     await db.commit()
@@ -94,12 +103,15 @@ async def get_task(
         raise HTTPException(status_code=404, detail="Task not found")
     return task
 
+class UpdateTaskRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+
 @router.put("/{task_id}")
 async def update_task(
     task_id: str,
-    title: Optional[str] = None,
-    description: Optional[str] = None,
-    status: Optional[str] = None,
+    data: UpdateTaskRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -110,39 +122,25 @@ async def update_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    if title:
-        task.title = title
-    if description:
-        task.description = description
-    if status:
-        task.status = status
+    if data.title:
+        task.title = data.title
+    if data.description:
+        task.description = data.description
+    if data.status:
+        task.status = data.status
     task.updated_at = datetime.utcnow()
     
     await db.commit()
     return task
 
-@router.delete("/{task_id}")
-async def delete_task(
-    task_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    result = await db.execute(
-        select(Task).where(and_(Task.id == task_id, Task.org_id == current_user.org_id))
-    )
-    task = result.scalar_one_or_none()
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    await db.delete(task)
-    await db.commit()
-    return {"status": "deleted"}
+class ApproveTaskRequest(BaseModel):
+    decision: str
+    comments: Optional[str] = None
 
 @router.post("/{task_id}/approve")
 async def approve_task_stage(
     task_id: str,
-    decision: str,
-    comments: Optional[str] = None,
+    data: ApproveTaskRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

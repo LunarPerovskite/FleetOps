@@ -8,7 +8,7 @@ Endpoints for executing tasks through AI agents:
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from typing import Optional
 
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.models import User
 from app.services.agent_execution_service import agent_execution_service
 

@@ -76,14 +76,14 @@ export default function Organizations() {
     }
   };
 
-  const { values, errors, handleChange, handleSubmit } = useForm({
-    initialValues: { name: '', slug: '', description: '', monthly_budget: 1000 },
-    validationSchema: {
+  const { values, errors, handleChange, handleSubmit } = useForm(
+    { name: '', slug: '', description: '', monthly_budget: 1000 },
+    {
       name: { required: true, minLength: 1, maxLength: 100 },
       slug: { required: true, minLength: 1, maxLength: 50 },
     },
-    onSubmit: handleCreate,
-  });
+    handleCreate
+  );
 
   if (loading) {
     return (
@@ -130,7 +130,7 @@ export default function Organizations() {
                 type="text"
                 name="name"
                 value={values.name}
-                onChange={handleChange}
+                onChange={(e) => handleChange('name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="Acme Corp"
               />
@@ -142,7 +142,7 @@ export default function Organizations() {
                 type="text"
                 name="slug"
                 value={values.slug}
-                onChange={handleChange}
+                onChange={(e) => handleChange('slug', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="acme-corp"
               />
@@ -153,7 +153,7 @@ export default function Organizations() {
               <textarea
                 name="description"
                 value={values.description}
-                onChange={handleChange}
+                onChange={(e) => handleChange('description', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 rows={2}
                 placeholder="Organization description..."
@@ -165,7 +165,7 @@ export default function Organizations() {
                 type="number"
                 name="monthly_budget"
                 value={values.monthly_budget}
-                onChange={handleChange}
+                onChange={(e) => handleChange('monthly_budget', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>

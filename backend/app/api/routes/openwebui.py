@@ -6,7 +6,7 @@ Expose OpenWebUI functionality through FleetOps with governance.
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.models import User
 from app.adapters.openwebui_adapter import openwebui_adapter
 

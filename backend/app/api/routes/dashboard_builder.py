@@ -9,7 +9,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.models import User
 
 router = APIRouter(prefix="/dashboard-builder", tags=["Dashboard Builder"])

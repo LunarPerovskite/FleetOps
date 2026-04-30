@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.services.customer_service import CustomerServiceManager
 from app.models.models import User
 
@@ -92,3 +92,54 @@ async def get_customer_profile(
         "sentiment_trend": profile.sentiment_history[-5:] if profile.sentiment_history else [],
         "last_interaction": profile.last_interaction.isoformat() if profile.last_interaction else None
     }
+
+
+@router.get("/sessions")
+async def get_sessions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all customer service sessions for the organization"""
+    return {
+        "sessions": []
+    }
+
+
+@router.get("/sessions/{session_id}")
+async def get_session(
+    session_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single session with messages"""
+    return {
+        "id": session_id,
+        "customer_id": "customer_1",
+        "channel": "chat",
+        "status": "active",
+        "priority": "medium",
+        "messages": [],
+        "created_at": None,
+    }
+
+
+@router.post("/sessions/{session_id}/messages")
+async def send_message(
+    session_id: str,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Send a message in a session"""
+    return {"success": True, "message_id": "msg_" + session_id}
+
+
+@router.post("/sessions/{session_id}/handoff")
+async def handoff_session(
+    session_id: str,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Handoff a session to human agent"""
+    return {"success": True, "handoff_id": "ho_" + session_id}

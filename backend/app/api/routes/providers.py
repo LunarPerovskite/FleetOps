@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.core.database import get_sync_db
+from app.api.routes.auth import get_current_user
 from app.models.models import User
 
 router = APIRouter(prefix="/providers", tags=["Providers"])
@@ -59,7 +59,7 @@ provider_configs: Dict[str, Dict[str, Any]] = {}
 @router.get("/config")
 def get_provider_config(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Get current provider configuration"""
     org_id = current_user.org_id
@@ -70,7 +70,7 @@ def get_provider_config(
 def update_provider_config(
     config: Dict[str, str],
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Update provider configuration"""
     org_id = current_user.org_id
@@ -96,7 +96,7 @@ def update_provider_config(
 @router.get("/health")
 def check_provider_health(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Check health of configured providers"""
     org_id = current_user.org_id

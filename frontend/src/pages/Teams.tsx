@@ -85,13 +85,13 @@ export default function Teams() {
     }
   };
 
-  const { values, errors, handleChange, handleSubmit } = useForm({
-    initialValues: { name: '', description: '', budget: 500 },
-    validationSchema: {
+  const { values, errors, handleChange, handleSubmit } = useForm(
+    { name: '', description: '', budget: 500 },
+    {
       name: { required: true, minLength: 1, maxLength: 100 },
     },
-    onSubmit: handleCreate,
-  });
+    handleCreate
+  );
 
   if (loading) {
     return (

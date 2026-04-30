@@ -12,7 +12,7 @@ export function useTaskList(filters?: { status?: string; page?: number; page_siz
       try {
         setIsLoading(true);
         const response = await tasksAPI.list(filters);
-        setData(response?.tasks || []);
+        setData(response?.items || []);
         setTotal(response?.total || 0);
         setError(null);
       } catch (err: any) {
@@ -30,7 +30,7 @@ export function useTaskList(filters?: { status?: string; page?: number; page_siz
     try {
       setIsLoading(true);
       const response = await tasksAPI.list(filters);
-      setData(response?.tasks || []);
+      setData(response?.items || []);
       setTotal(response?.total || 0);
       setError(null);
     } catch (err: any) {

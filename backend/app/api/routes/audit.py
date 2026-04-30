@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from datetime import datetime
 
-from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.core.database import get_sync_db
+from app.api.routes.auth import get_current_user
 from app.models.models import User, Event
 
 router = APIRouter(prefix="/audit", tags=["Audit Log"])
@@ -26,10 +26,10 @@ def list_audit_events(
     page: int = 1,
     page_size: int = 20,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """List audit events with filters"""
-    query = db.query(Event).filter(Event.org_id == current_user.org_id)
+    query = db.query(Event)
     
     if task_id:
         query = query.filter(Event.task_id == task_id)
@@ -72,12 +72,11 @@ def list_audit_events(
 def get_event_details(
     event_id: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Get detailed event information with signature verification"""
     event = db.query(Event).filter(
-        Event.id == event_id,
-        Event.org_id == current_user.org_id
+        Event.id == event_id
     ).first()
     
     if not event:
@@ -98,7 +97,7 @@ def get_event_details(
 @router.get("/stats")
 def get_audit_stats(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Get audit log statistics"""
     from sqlalchemy import func

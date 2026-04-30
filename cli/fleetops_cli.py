@@ -77,9 +77,9 @@ def login(ctx, email, password):
 def tasks(ctx):
     """List recent tasks"""
     result = api_call(ctx, 'GET', '/tasks')
-    if result and 'tasks' in result:
+    if result and 'items' in result:
         click.echo(f"📋 Tasks ({result.get('total', 0)} total):\n")
-        for task in result['tasks'][:10]:
+        for task in result['items'][:10]:
             status_emoji = "✅" if task['status'] == 'completed' else "🔄" if task['status'] == 'executing' else "⏳"
             click.echo(f"   {status_emoji} {task['title']} — {task['status']}")
 

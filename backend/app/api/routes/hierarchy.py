@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Dict
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.services.hierarchy_service import HierarchyService
 from app.models.models import User
 
@@ -174,6 +174,34 @@ async def create_role_template(
         category=category
     )
     return result
+
+
+@router.get("/")
+async def get_hierarchy(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get organization hierarchy overview"""
+    service = HierarchyService(db)
+    scales = await service.get_org_scales(current_user.org_id)
+    return {
+        "scales": scales or [],
+        "org_id": str(current_user.org_id),
+    }
+
+
+@router.get("")
+async def get_hierarchy_no_slash(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get organization hierarchy overview (no trailing slash)"""
+    service = HierarchyService(db)
+    scales = await service.get_org_scales(current_user.org_id)
+    return {
+        "scales": scales or [],
+        "org_id": str(current_user.org_id),
+    }
 
 @router.get("/users/{user_id}/effective-level/{scale_id}")
 async def get_user_effective_level(

@@ -89,8 +89,8 @@ class Agent(Base):
     model = Column(String(100))
     level = Column(Enum(AgentLevel), default=AgentLevel.JUNIOR)
     capabilities = Column(JSON, default=list)
-    org_id = Column(String(36), ForeignKey("organizations.id"))
-    team_id = Column(String(36), ForeignKey("teams.id"))  # Primary/home team
+    org_id = Column(String(36), ForeignKey("organizations.id"), nullable=True)
+    team_id = Column(String(36), ForeignKey("teams.id"), nullable=True)  # Primary/home team
     parent_agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
     status = Column(String(50), default="active")
     cost_to_date = Column(Float, default=0.0)
@@ -135,9 +135,9 @@ class Task(Base):
     status = Column(Enum(TaskStatus), default=TaskStatus.CREATED)
     risk_level = Column(Enum(RiskLevel), default=RiskLevel.LOW)
     stage = Column(String(50), default="initiation")
-    agent_id = Column(String(36), ForeignKey("agents.id"))
-    org_id = Column(String(36), ForeignKey("organizations.id"))
-    created_by = Column(String(36), ForeignKey("users.id"))
+    agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
+    org_id = Column(String(36), ForeignKey("organizations.id"), nullable=True)
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime)
     

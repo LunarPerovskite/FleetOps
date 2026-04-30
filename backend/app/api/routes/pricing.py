@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 from decimal import Decimal
 
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.models import User
 from app.core.cost_tracking import cost_tracker
 

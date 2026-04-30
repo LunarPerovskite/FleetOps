@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.api.routes.auth import get_current_user
 from app.models.models import User, Agent, Team, AgentTeamAssignment
 
 router = APIRouter()

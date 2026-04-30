@@ -16,7 +16,8 @@ from app.api.routes import (
     events, dashboard, customer_service, hierarchy, providers, 
     audit, dashboard_builder as db_builder, billing, webhooks, 
     agent_execution, agent_instances, multi_agent, llm_providers,
-    openwebui, pricing, search, websocket, health, shared_agents
+    openwebui, pricing, search, websocket, health, shared_agents,
+    analytics
 )
 
 from app.core.security_middleware import SecurityMiddleware
@@ -47,8 +48,10 @@ CORS_ORIGINS = (
     if settings.DEBUG
     else [
         "http://localhost:3000",
+        "http://localhost:3001",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
         "http://127.0.0.1:5173",
         os.getenv("FRONTEND_URL", ""),
     ]
@@ -89,6 +92,7 @@ app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(approvals.router, prefix="/api/v1/approvals", tags=["approvals"])
 app.include_router(events.router, prefix="/api/v1/events", tags=["events"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
 app.include_router(customer_service.router, prefix="/api/v1/customer-service", tags=["customer-service"])
 app.include_router(hierarchy.router, prefix="/api/v1/hierarchy", tags=["hierarchy"])
 app.include_router(providers.router, prefix="/api/v1", tags=["providers"])
@@ -104,7 +108,7 @@ app.include_router(multi_agent.router, prefix="/api/v1", tags=["multi-agent"])
 app.include_router(llm_providers.router, prefix="/api/v1", tags=["llm-providers"])
 app.include_router(openwebui.router, prefix="/api/v1", tags=["openwebui"])
 app.include_router(pricing.router, prefix="/api/v1", tags=["pricing"])
-app.include_router(search.router, prefix="/api/v1", tags=["search"])
+app.include_router(search.router, prefix="/api/v1/search", tags=["search"])
 app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { agentsAPI } from '../lib/api';
 import { Loading, SkeletonTable } from '../components/Loading';
 import { ErrorDisplay, EmptyState } from '../components/ErrorDisplay';
@@ -33,9 +33,9 @@ export default function Agents() {
     }
   };
 
-  useState(() => {
+  useEffect(() => {
     fetchAgents();
-  });
+  }, []);
 
   const form = useForm(
     { name: '', provider: 'claude', model: '', capabilities: '' },
@@ -167,9 +167,8 @@ export default function Agents() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {agents.map((agent) => (
-                  <>
+                  <Fragment key={agent.id}>
                     <tr
-                      key={agent.id}
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => setExpandedAgent(expandedAgent === agent.id ? null : agent.id)}
                     >
@@ -240,7 +239,7 @@ export default function Agents() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

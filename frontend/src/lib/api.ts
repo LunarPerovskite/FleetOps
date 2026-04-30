@@ -24,7 +24,7 @@ axiosRetry(api, {
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('fleetops_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -36,7 +36,7 @@ api.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
+      localStorage.removeItem('fleetops_token');
       window.location.href = '/login';
     }
     return Promise.reject(error.response?.data || error);
@@ -210,7 +210,7 @@ const WS_URL = (import.meta.env.VITE_WS_URL || 'ws://localhost:8000').replace(/^
 
 export function createWebSocketConnection(path: string = '/ws'): WebSocket | null {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('fleetops_token');
     const url = new URL(path, WS_URL);
     if (token) {
       url.searchParams.set('token', token);

@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 
-from app.core.database import get_db
-from app.core.auth import get_current_user
+from app.core.database import get_sync_db
+from app.api.routes.auth import get_current_user
 from app.models.models import User, Task, Agent, Organization
 
 router = APIRouter(prefix="/billing", tags=["Billing"])
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 @router.get("/usage")
 def get_usage(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Get current usage statistics for self-hosted"""
     org_id = current_user.org_id
@@ -64,7 +64,7 @@ def get_usage(
 @router.get("/history")
 def get_billing_history(
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_sync_db)
 ):
     """Get usage history (self-hosted has no billing)"""
     return {
