@@ -5,7 +5,7 @@ from . import (
     audit, billing, webhooks, agent_execution, agent_instances,
     multi_agent, llm_providers, openwebui, pricing, search,
     websocket, health, shared_agents, analytics, models,
-    llm_usage, dashboard_builder
+    llm_usage, dashboard_builder, a2a
 )
 
 __all__ = [
@@ -14,5 +14,5 @@ __all__ = [
     "audit", "billing", "webhooks", "agent_execution", "agent_instances",
     "multi_agent", "llm_providers", "openwebui", "pricing", "search",
     "websocket", "health", "shared_agents", "analytics", "models",
-    "llm_usage", "dashboard_builder"
+    "llm_usage", "dashboard_builder", "a2a"
 ]

@@ -12,12 +12,12 @@ from app.core.logging_config import setup_logging
 setup_logging(level=settings.LOG_LEVEL, json_format=not settings.DEBUG)
 
 from app.api.routes import (
-    auth, organizations, teams, users, agents, tasks, approvals, 
-    events, dashboard, customer_service, hierarchy, providers, 
-    audit, dashboard_builder as db_builder, billing, webhooks, 
+    auth, organizations, teams, users, agents, tasks, approvals,
+    events, dashboard, customer_service, hierarchy, providers,
+    audit, dashboard_builder as db_builder, billing, webhooks,
     agent_execution, agent_instances, multi_agent, llm_providers,
     openwebui, pricing, search, websocket, health, shared_agents,
-    analytics, models
+    analytics, models, a2a
 )
 
 from app.core.security_middleware import SecurityMiddleware
@@ -116,6 +116,49 @@ app.include_router(health.router, prefix="/api/v1", tags=["health"])
 
 app.include_router(shared_agents.router, prefix="/api/v1", tags=["shared-agents"])
 app.include_router(models.router, prefix="/api/v1", tags=["models"])
+
+# ─── Agent-to-Agent (A2A) Communication ────────────────────────────────
+app.include_router(a2a.router, prefix="/api/v1/a2a", tags=["a2a"])
+
+# Google A2A Agent Card — must be at root /.well-known/agent.json
+from app.core.a2a import AgentCard, AgentSkill, AgentCapabilities
+
+@app.get("/.well-known/agent.json")
+async def agent_card():
+    """FleetOps Agent Card — tells other A2A agents we are a governance hub."""
+    card = AgentCard()
+    card.name = "FleetOps"
+    card.description = "FleetOps Governance Hub for Agent-to-Agent Communication"
+    url = os.getenv("FLEETOPS_PUBLIC_URL", "")
+    card.url = url
+    card.provider = {"organization": "FleetOps"}
+    card.version = "0.1.0"
+    card.capabilities = AgentCapabilities(
+        streaming=True,
+        pushNotifications=False,
+        stateTransitionHistory=True
+    )
+    card.skills = [
+        AgentSkill(
+            id="route",
+            name="Agent-to-Agent Task Routing",
+            description="Route tasks between agents with governance and audit",
+            tags=["routing", "governance", "audit"]
+        ),
+        AgentSkill(
+            id="discover",
+            name="Agent Discovery",
+            description="Discover available agents by capability",
+            tags=["discovery", "registry"]
+        ),
+        AgentSkill(
+            id="governance",
+            name="Human-in-the-Loop Governance",
+            description="Enforce approvals, audit trails, and policy compliance",
+            tags=["governance", "audit", "approval"]
+        )
+    ]
+    return card.to_dict()
 
 @app.get("/health")
 async def health_check():
