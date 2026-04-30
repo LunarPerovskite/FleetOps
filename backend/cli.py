@@ -375,46 +375,41 @@ def models_command(
         table.add_column("Context", justify="right", width=10)
         table.add_column("Capabilities", style="green", min_width=20)
         
-        from app.core.model_registry import model_registry, ModelCapability
+        from fleetops_cli.client import create_client
+        import asyncio
         
-        # Filter models
-        models = list(model_registry._models.values())
+        client = create_client(api_url=os.getenv("FLEETOPS_API_URL", "http://localhost:8000"))
         
-        if provider:
-            models = [m for m in models if m.provider == provider]
+        # Get models from API (discovered models)
+        models = asyncio.run(client.list_discovered_models(provider=provider, search=search))
         
+        # Apply max_cost filter in Python
         if max_cost:
-            models = [m for m in models if m.input_cost_per_1m <= max_cost]
-        
-        if search:
-            search_lower = search.lower()
-            models = [m for m in models 
-                     if search_lower in m.id.lower() or search_lower in m.name.lower()]
+            models = [m for m in models if m.get("pricing", {}).get("input", 999) <= max_cost]
         
         # Sort by cost
-        models = sorted(models, key=lambda m: m.input_cost_per_1m)
+        models = sorted(models, key=lambda m: m.get("pricing", {}).get("input", 999))
         
         for m in models:
-            if not m.is_available:
-                continue
-            
+            tier = m.get("tier", "standard")
             tier_color = {
                 "free": "green",
                 "cheap": "cyan",
                 "standard": "blue",
                 "premium": "magenta",
                 "ultra": "red"
-            }.get(m.tier.value, "white")
+            }.get(tier, "white")
             
-            caps = ", ".join([c.value[:4] for c in m.capabilities[:4]])
+            caps = ", ".join(m.get("capabilities", [])[:4])
+            pricing = m.get("pricing", {})
             
             table.add_row(
-                m.name,
-                m.provider,
-                f"[{tier_color}]{m.tier.value}[/{tier_color}]",
-                f"${m.input_cost_per_1m:.2f}",
-                f"${m.output_cost_per_1m:.2f}",
-                f"{m.max_total_tokens:,}",
+                m.get("name", m.get("id", "unknown")),
+                m.get("provider", "unknown"),
+                f"[{tier_color}]{tier}[/{tier_color}]",
+                f"${pricing.get('input', 0):.2f}",
+                f"${pricing.get('output', 0):.2f}",
+                f"{m.get('context_length', 'N/A')}",
                 caps
             )
         

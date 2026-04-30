@@ -199,11 +199,41 @@ class FleetOpsClient:
     async def get_status(self) -> Dict[str, Any]:
         """Get FleetOps system status"""
         try:
-            response = await self._http_client.get("/api/v1/status")
+            response = await self._http_client.get("/health")
+            response.raise_for_status()
+            data = response.json()
+            return {
+                "status": data.get("status", "healthy"),
+                "version": data.get("version", "unknown"),
+                "agents": 0,
+                "pending_approvals": 0,
+                "total_cost_today": 0,
+            }
+        except Exception as e:
+            return {"status": "unavailable", "error": str(e)}
+
+    async def list_discovered_models(self, provider: Optional[str] = None, search: Optional[str] = None) -> List[Dict[str, Any]]:
+        """List discovered models from the API"""
+        try:
+            params = {}
+            if provider:
+                params["provider"] = provider
+            if search:
+                params["query"] = search
+            response = await self._http_client.get("/api/v1/models/discovered/search", params=params)
             response.raise_for_status()
             return response.json()
         except Exception as e:
-            return {"status": "unavailable", "error": str(e)}
+            return []
+
+    async def get_provider_status(self) -> Dict[str, Any]:
+        """Get status of all LLM providers"""
+        try:
+            response = await self._http_client.get("/api/v1/models/providers/status")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            return {}
     
     # ═══════════════════════════════════════════════════
     # SYNCHRONOUS WRAPPERS (for non-async agents)
