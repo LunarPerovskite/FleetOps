@@ -128,13 +128,16 @@ class AgentTeamAssignment(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
-    
+
     id = Column(String(36), primary_key=True)
     title = Column(String(500), nullable=False)
     description = Column(Text)
     status = Column(Enum(TaskStatus), default=TaskStatus.CREATED)
     risk_level = Column(Enum(RiskLevel), default=RiskLevel.LOW)
+    priority = Column(Integer, default=50)  # 0 = lowest, 100 = highest
     stage = Column(String(50), default="initiation")
+    deadline = Column(DateTime, nullable=True)
+    context = Column(JSON, default=dict)    # arbitrary task context / attachments
     agent_id = Column(String(36), ForeignKey("agents.id"), nullable=True)
     org_id = Column(String(36), ForeignKey("organizations.id"), nullable=True)
     created_by = Column(String(36), ForeignKey("users.id"), nullable=True)

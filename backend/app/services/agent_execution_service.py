@@ -13,7 +13,6 @@ from datetime import datetime
 import logging
 
 from app.adapters.personal_agent_adapter import PersonalAgentAdapter, AgentType
-from app.adapters.personal_agent_adapter import PersonalAgentAdapter, AgentType
 from app.services.service_stubs import task_service, approval_service, notification_service, event_service
 
 logger = logging.getLogger(__name__)

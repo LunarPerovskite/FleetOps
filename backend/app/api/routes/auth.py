@@ -7,6 +7,7 @@ import uuid
 
 from app.core.database import get_db
 from app.core.auth import verify_password, create_access_token, decode_token, get_password_hash
+from app.core.security import generate_csrf_token
 from app.models.models import User
 
 router = APIRouter()
@@ -74,3 +75,36 @@ async def me(current_user: User = Depends(get_current_user)):
         "role": current_user.role.value if current_user.role else None,
         "org_id": current_user.org_id,
     }
+
+
+@router.get("/csrf-token")
+async def csrf_token():
+    """Generate a CSRF token (double-submit cookie pattern).
+
+    Returns:
+        Sets a `csrf_token` HttpOnly cookie and returns the matching
+        `X-CSRF-Token` header value in the response body.
+
+    Usage:
+        - Call this on page load / app init.
+        - Include `X-CSRF-Token: <token>` on every state-changing request.
+        - Include `Authorization: Bearer <jwt>` on API requests to skip CSRF.
+    """
+    from fastapi.responses import JSONResponse
+
+    token, hashed = generate_csrf_token()
+    response = JSONResponse(
+        {
+            "csrf_token": token,
+            "message": "Include this value in X-CSRF-Token header for non-GET requests",
+        }
+    )
+    response.set_cookie(
+        key="csrf_token",
+        value=hashed,
+        httponly=True,
+        secure=not False,          # Set to `True` in production (HTTPS)
+        samesite="strict",
+        max_age=3600,
+    )
+    return response

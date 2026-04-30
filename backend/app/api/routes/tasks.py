@@ -158,13 +158,13 @@ async def approve_task_stage(
         task_id=task_id,
         human_id=current_user.id,
         stage=task.stage,
-        decision=decision,
-        comments=comments
+        decision=data.decision,
+        comments=data.comments
     )
     db.add(approval)
-    
+
     # Update task stage based on decision
-    if decision == "approve":
+    if data.decision == "approve":
         if task.stage == "initiation":
             task.stage = "planning"
             task.status = TaskStatus.PLANNING
@@ -181,9 +181,9 @@ async def approve_task_stage(
             task.stage = "delivery"
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime.utcnow()
-    elif decision == "reject":
+    elif data.decision == "reject":
         task.status = TaskStatus.FAILED
-    elif decision == "escalate":
+    elif data.decision == "escalate":
         # Escalate to next human level
         pass
     
@@ -199,8 +199,9 @@ async def get_task_events(
     current_user: User = Depends(get_current_user)
 ):
     """Get events for a specific task with pagination"""
-    query = select(Event).where(
-        and_(Event.task_id == task_id, Event.org_id == current_user.org_id)
+    # Join via Task.org_id since Event has no org_id column
+    query = select(Event).join(Task).where(
+        and_(Event.task_id == task_id, Task.org_id == current_user.org_id)
     ).order_by(Event.timestamp.desc())
     
     result = await db.execute(query.offset((page - 1) * page_size).limit(page_size))

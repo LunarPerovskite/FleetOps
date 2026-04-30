@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+
+    # Cache config
+    CACHE_TTL_SECONDS: int = 300
+    CACHE_PREFIX: str = "fleetops"
+
+    # Rate limiting
+    RATE_LIMIT_PER_MINUTE: int = 100
+    RATE_LIMIT_BURST: int = 10
     
     # Auth — REQUIRED in production
     SECRET_KEY: str = Field(

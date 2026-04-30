@@ -424,51 +424,6 @@ class DynamicCostTracker:
         
         return Decimal("0")
     
-    async def track_usage(self, service: str, model: str,
-                         agent_id: str, task_id: str,
-                         input_tokens: int, output_tokens: int,
-                         cached_tokens: int = 0,
-                         user_id: Optional[str] = None,
-                         metadata: Optional[Dict] = None) -> Dict:
-        """Track actual usage and calculate real cost"""
-        
-        # Get current pricing
-        pricing = await self.get_pricing(service, model)
-        
-        # Calculate cost
-        cost = self.calculate_cost(
-            service, model,
-            input_tokens, output_tokens, cached_tokens,
-            pricing
-        )
-        
-        # Build result
-        result = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "service": service,
-            "model": model,
-            "agent_id": agent_id,
-            "task_id": task_id,
-            "user_id": user_id,
-            "input_tokens": input_tokens,
-            "output_tokens": output_tokens,
-            "cached_tokens": cached_tokens,
-            "total_tokens": input_tokens + output_tokens + cached_tokens,
-            "cost_usd": str(cost),
-            "pricing_source": "user_configured" if pricing and pricing.get("is_user_configured") else "api_fetched",
-            "pricing_model": pricing.get("pricing_type", "unknown") if pricing else "unknown",
-            "rates_used": {
-                "input_per_1m": pricing.get("input_rate_per_1m") if pricing else None,
-                "output_per_1m": pricing.get("output_rate_per_1m") if pricing else None,
-            },
-            "metadata": metadata or {}
-        }
-        
-        # Save to database (async)
-        await self._save_usage_to_db(result)
-        
-        return result
-    
     async def _save_usage_to_db(self, usage_data: Dict):
         """Save usage record to database"""
         try:

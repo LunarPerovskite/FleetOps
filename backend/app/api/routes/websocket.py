@@ -1,6 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from datetime import datetime
 
 from app.core.websocket import manager
 from app.core.database import get_db
@@ -55,11 +56,17 @@ async def agent_websocket(websocket: WebSocket, agent_id: str, db: AsyncSession 
             
             elif data.get("type") == "request_approval":
                 # Agent requesting human approval
+                sla = data.get("sla_deadline")
+                if isinstance(sla, str):
+                    # Parse ISO 8601 string to datetime
+                    sla = datetime.fromisoformat(sla.replace("Z", "+00:00"))
+                elif not isinstance(sla, datetime):
+                    sla = None  # Default if invalid type
                 await manager.notify_approval_needed(
                     task_id=data.get("task_id"),
                     stage=data.get("stage"),
                     required_role=data.get("required_role", "operator"),
-                    sla_deadline=data.get("sla_deadline"),
+                    sla_deadline=sla,
                     org_id=agent.org_id
                 )
             

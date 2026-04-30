@@ -21,6 +21,7 @@ from app.api.routes import (
 )
 
 from app.core.security_middleware import SecurityMiddleware
+from app.core.security import CSRFMiddleware
 
 security = HTTPBearer(auto_error=False)
 
@@ -41,6 +42,7 @@ app = FastAPI(
 
 # ─── Security Middleware ───────────────────────────────────────────────
 app.add_middleware(SecurityMiddleware)
+app.add_middleware(CSRFMiddleware)  # CSRF protection (skipped with JWT auth)
 
 # ─── CORS ────────────────────────────────────────────────────────────
 CORS_ORIGINS = (

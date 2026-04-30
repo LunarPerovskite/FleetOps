@@ -194,200 +194,201 @@ else:
 
 # ─── Resources (read-only data) ───
 
-@server.resource("fleetops://status")
-async def get_status_resource() -> str:
-    """Get current FleetOps system status"""
-    status = await client.get_status()
-    return json.dumps(status, indent=2)
+if MCP_AVAILABLE:
+    @server.resource("fleetops://status")
+    async def get_status_resource() -> str:
+        """Get current FleetOps system status"""
+        status = await client.get_status()
+        return json.dumps(status, indent=2)
 
 
-@server.resource("fleetops://pending")
-async def get_pending_resource() -> str:
-    """Get pending approvals"""
-    pending = await client.get_pending_approvals()
-    return json.dumps({"pending_approvals": pending}, indent=2)
+    @server.resource("fleetops://pending")
+    async def get_pending_resource() -> str:
+        """Get pending approvals"""
+        pending = await client.get_pending_approvals()
+        return json.dumps({"pending_approvals": pending}, indent=2)
 
 
-@server.resource("fleetops://agents")
-async def get_agents_resource() -> str:
-    """Get active agents"""
-    agents = await client.get_agents()
-    return json.dumps({"agents": agents}, indent=2)
+    @server.resource("fleetops://agents")
+    async def get_agents_resource() -> str:
+        """Get active agents"""
+        agents = await client.get_agents()
+        return json.dumps({"agents": agents}, indent=2)
 
 
-@server.resource("fleetops://costs")
-async def get_costs_resource() -> str:
-    """Get cost summary"""
-    costs = await client.get_costs()
-    return json.dumps(costs, indent=2)
+    @server.resource("fleetops://costs")
+    async def get_costs_resource() -> str:
+        """Get cost summary"""
+        costs = await client.get_costs()
+        return json.dumps(costs, indent=2)
 
 
-# ─── Tools (actions) ───
+    # ─── Tools (actions) ───
 
-@server.tool()
-async def request_approval(
-    action: str,
-    arguments: str = "",
-    file_path: str = "",
-    environment: str = "development",
-    estimated_cost: float = 0.0,
-    agent_name: str = "MCP Agent"
-) -> str:
-    """Request approval before executing a potentially dangerous action.
-    
-    Use this tool BEFORE executing any command that might:
-    - Delete files or data
-    - Modify production systems
-    - Execute shell commands
-    - Make API calls that cost money
-    - Access sensitive files
-    
-    Args:
-        action: Type of action (bash, write, delete, api, db, etc.)
-        arguments: Command or arguments being executed
-        file_path: File being modified (if applicable)
-        environment: Environment (development, staging, production)
-        estimated_cost: Estimated cost in USD
-        agent_name: Name of the agent requesting approval
-    
-    Returns:
-        JSON with can_proceed (bool), status, danger_level, message
-    """
-    result = await client.request_approval(
-        action=action,
-        arguments=arguments,
-        file_path=file_path,
-        environment=environment,
-        estimated_cost=estimated_cost,
-        agent_name=agent_name
-    )
-    
-    if result.get("can_proceed"):
-        return f"✅ APPROVED: {result.get('message', 'Proceed')}\nDanger level: {result.get('danger_level', 'unknown')}"
-    else:
-        return f"❌ BLOCKED: {result.get('message', 'Approval required')}\nDanger level: {result.get('danger_level', 'unknown')}"
+    @server.tool()
+    async def request_approval(
+        action: str,
+        arguments: str = "",
+        file_path: str = "",
+        environment: str = "development",
+        estimated_cost: float = 0.0,
+        agent_name: str = "MCP Agent"
+    ) -> str:
+        """Request approval before executing a potentially dangerous action.
 
+        Use this tool BEFORE executing any command that might:
+        - Delete files or data
+        - Modify production systems
+        - Execute shell commands
+        - Make API calls that cost money
+        - Access sensitive files
 
-@server.tool()
-async def track_execution_cost(
-    action: str,
-    cost: float = 0.0,
-    tokens: int = 0,
-    duration: float = 0.0,
-    agent_id: str = "mcp-agent"
-) -> str:
-    """Track the cost of an executed action.
-    
-    Use this tool AFTER executing an action to report:
-    - Actual cost incurred
-    - Tokens used
-    - Duration
-    
-    Args:
-        action: Description of what was executed
-        cost: Actual cost in USD
-        tokens: Number of tokens consumed
-        duration: Execution time in seconds
-        agent_id: ID of the agent
-    
-    Returns:
-        Confirmation message
-    """
-    result = await client.track_execution(
-        agent_id=agent_id,
-        action=action,
-        cost=cost,
-        tokens=tokens,
-        duration=duration
-    )
-    return f"📊 Tracked: {action} (${cost:.2f}, {tokens} tokens, {duration}s)"
+        Args:
+            action: Type of action (bash, write, delete, api, db, etc.)
+            arguments: Command or arguments being executed
+            file_path: File being modified (if applicable)
+            environment: Environment (development, staging, production)
+            estimated_cost: Estimated cost in USD
+            agent_name: Name of the agent requesting approval
+
+        Returns:
+            JSON with can_proceed (bool), status, danger_level, message
+        """
+        result = await client.request_approval(
+            action=action,
+            arguments=arguments,
+            file_path=file_path,
+            environment=environment,
+            estimated_cost=estimated_cost,
+            agent_name=agent_name
+        )
+
+        if result.get("can_proceed"):
+            return f"✅ APPROVED: {result.get('message', 'Proceed')}\nDanger level: {result.get('danger_level', 'unknown')}"
+        else:
+            return f"❌ BLOCKED: {result.get('message', 'Approval required')}\nDanger level: {result.get('danger_level', 'unknown')}"
 
 
-@server.tool()
-async def get_pending_approvals() -> str:
-    """Get list of pending approvals that need human action.
-    
-    Returns:
-        JSON list of pending approvals with IDs, agents, actions
-    """
-    pending = await client.get_pending_approvals()
-    if not pending:
-        return "🎉 No pending approvals!"
-    
-    lines = ["⏳ Pending Approvals:"]
-    for apr in pending:
-        lines.append(f"  - {apr.get('id')}: {apr.get('agent_name')} wants to {apr.get('action')} ({apr.get('danger_level', 'unknown')})")
-    
-    return "\n".join(lines)
+    @server.tool()
+    async def track_execution_cost(
+        action: str,
+        cost: float = 0.0,
+        tokens: int = 0,
+        duration: float = 0.0,
+        agent_id: str = "mcp-agent"
+    ) -> str:
+        """Track the cost of an executed action.
+
+        Use this tool AFTER executing an action to report:
+        - Actual cost incurred
+        - Tokens used
+        - Duration
+
+        Args:
+            action: Description of what was executed
+            cost: Actual cost in USD
+            tokens: Number of tokens consumed
+            duration: Execution time in seconds
+            agent_id: ID of the agent
+
+        Returns:
+            Confirmation message
+        """
+        result = await client.track_execution(
+            agent_id=agent_id,
+            action=action,
+            cost=cost,
+            tokens=tokens,
+            duration=duration
+        )
+        return f"📊 Tracked: {action} (${cost:.2f}, {tokens} tokens, {duration}s)"
 
 
-@server.tool()
-async def approve_request(
-    approval_id: str,
-    scope: str = "once",
-    comments: str = ""
-) -> str:
-    """Approve a pending request.
-    
-    Args:
-        approval_id: ID of the approval to approve
-        scope: How long approval lasts (once, session, workspace, always)
-        comments: Optional comments
-    
-    Returns:
-        Confirmation message
-    """
-    result = await client.approve_request(approval_id, scope, comments)
-    if result.get("status") == "success":
-        return f"✅ Approved {approval_id} (scope: {scope})"
-    else:
-        return f"❌ Error: {result.get('error', 'Unknown error')}"
+    @server.tool()
+    async def get_pending_approvals() -> str:
+        """Get list of pending approvals that need human action.
+
+        Returns:
+            JSON list of pending approvals with IDs, agents, actions
+        """
+        pending = await client.get_pending_approvals()
+        if not pending:
+            return "🎉 No pending approvals!"
+
+        lines = ["⏳ Pending Approvals:"]
+        for apr in pending:
+            lines.append(f"  - {apr.get('id')}: {apr.get('agent_name')} wants to {apr.get('action')} ({apr.get('danger_level', 'unknown')})")
+
+        return "\n".join(lines)
 
 
-@server.tool()
-async def get_fleetops_status() -> str:
-    """Get FleetOps system status and health.
-    
-    Returns:
-        System status, version, active agents, costs
-    """
-    status = await client.get_status()
-    return json.dumps(status, indent=2)
+    @server.tool()
+    async def approve_request(
+        approval_id: str,
+        scope: str = "once",
+        comments: str = ""
+    ) -> str:
+        """Approve a pending request.
+
+        Args:
+            approval_id: ID of the approval to approve
+            scope: How long approval lasts (once, session, workspace, always)
+            comments: Optional comments
+
+        Returns:
+            Confirmation message
+        """
+        result = await client.approve_request(approval_id, scope, comments)
+        if result.get("status") == "success":
+            return f"✅ Approved {approval_id} (scope: {scope})"
+        else:
+            return f"❌ Error: {result.get('error', 'Unknown error')}"
 
 
-@server.tool()
-async def check_danger_level(
-    action: str,
-    arguments: str = "",
-    file_path: str = "",
-    environment: str = "development"
-) -> str:
-    """Check danger level of an action without requesting approval.
-    
-    Use this to preview what danger level an action would have.
-    
-    Args:
-        action: Type of action
-        arguments: Command arguments
-        file_path: Target file
-        environment: Environment
-    
-    Returns:
-        Danger level and whether approval would be required
-    """
-    result = await client.request_approval(
-        action=action,
-        arguments=arguments,
-        file_path=file_path,
-        environment=environment
-    )
-    
-    level = result.get("danger_level", "unknown")
-    requires = result.get("requires_approval", False)
-    
-    emoji = {"safe": "🟢", "low": "🟡", "medium": "🟠", "high": "🔴", "critical": "🚨"}.get(level, "⚪")
-    
-    return f"{emoji} Danger Level: {level.upper()}\nRequires Approval: {'Yes' if requires else 'No'}\nScore: {result.get('score', 0):.2f}"
+    @server.tool()
+    async def get_fleetops_status() -> str:
+        """Get FleetOps system status and health.
+
+        Returns:
+            System status, version, active agents, costs
+        """
+        status = await client.get_status()
+        return json.dumps(status, indent=2)
+
+
+    @server.tool()
+    async def check_danger_level(
+        action: str,
+        arguments: str = "",
+        file_path: str = "",
+        environment: str = "development"
+    ) -> str:
+        """Check danger level of an action without requesting approval.
+
+        Use this to preview what danger level an action would have.
+
+        Args:
+            action: Type of action
+            arguments: Command arguments
+            file_path: Target file
+            environment: Environment
+
+        Returns:
+            Danger level and whether approval would be required
+        """
+        result = await client.request_approval(
+            action=action,
+            arguments=arguments,
+            file_path=file_path,
+            environment=environment
+        )
+
+        level = result.get("danger_level", "unknown")
+        requires = result.get("requires_approval", False)
+
+        emoji = {"safe": "🟢", "low": "🟡", "medium": "🟠", "high": "🔴", "critical": "🚨"}.get(level, "⚪")
+
+        return f"{emoji} Danger Level: {level.upper()}\nRequires Approval: {'Yes' if requires else 'No'}\nScore: {result.get('score', 0):.2f}"
 
 
 # ═════════════════════════════════════════════════════════════
@@ -400,7 +401,7 @@ async def main():
         print("[FleetOps MCP] ERROR: mcp package not installed")
         print("[FleetOps MCP] Install with: pip install mcp")
         sys.exit(1)
-    
+
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
             read_stream,

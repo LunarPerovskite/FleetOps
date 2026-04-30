@@ -1,4 +1,18 @@
 # FleetOps API routes
-from . import auth, agents, tasks, events, websocket, llm_usage, approvals, dashboard, organizations, customer_service, agent_execution, models
+from . import (
+    auth, organizations, teams, users, agents, tasks, approvals,
+    events, dashboard, customer_service, hierarchy, providers,
+    audit, billing, webhooks, agent_execution, agent_instances,
+    multi_agent, llm_providers, openwebui, pricing, search,
+    websocket, health, shared_agents, analytics, models,
+    llm_usage, dashboard_builder
+)
 
-__all__ = ["auth", "agents", "tasks", "events", "websocket", "llm_usage", "approvals", "dashboard", "organizations", "customer_service", "agent_execution", "models"]
+__all__ = [
+    "auth", "organizations", "teams", "users", "agents", "tasks", "approvals",
+    "events", "dashboard", "customer_service", "hierarchy", "providers",
+    "audit", "billing", "webhooks", "agent_execution", "agent_instances",
+    "multi_agent", "llm_providers", "openwebui", "pricing", "search",
+    "websocket", "health", "shared_agents", "analytics", "models",
+    "llm_usage", "dashboard_builder"
+]
